@@ -11,6 +11,7 @@ import Logo from '@/components/Logo';
 import FormSection from '@/components/FormSection';
 import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
 import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent } from '@/components/ui/card';
 
 const hostels = [
   { id: 'A', name: 'Block A' },
@@ -80,18 +81,28 @@ const SignupPage = () => {
       return;
     }
 
-    const userData = {
-      full_name: formData.fullName,
-      gender: formData.gender,
-      role: role,
-      registration_number: role === 'student' ? formData.registrationNumber : null,
-      worker_id: role === 'worker' ? formData.workerId : null,
-      hostel: role === 'student' ? formData.hostel : null,
-      floor: role === 'student' ? formData.floor : null,
-      assigned_hostel: role === 'worker' ? formData.assignedHostel : null,
-    };
+    try {
+      const userData = {
+        full_name: formData.fullName,
+        gender: formData.gender, // Ensure this is a simple string
+        role: role,
+        registration_number: role === 'student' ? formData.registrationNumber : null,
+        worker_id: role === 'worker' ? formData.workerId : null,
+        hostel: role === 'student' ? formData.hostel : null,
+        floor: role === 'student' ? formData.floor : null,
+        assigned_hostel: role === 'worker' ? formData.assignedHostel : null,
+      };
 
-    await signUp(formData.email, formData.password, userData);
+      console.log("Submitting user data:", userData);
+      await signUp(formData.email, formData.password, userData);
+    } catch (error) {
+      console.error("Error during signup:", error);
+      toast({
+        title: "Error during signup",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getTitle = () => {
@@ -228,73 +239,81 @@ const SignupPage = () => {
             </div>
 
             {role === 'student' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="hostel">Hostel Name</Label>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
-                    <Select 
-                      value={formData.hostel} 
-                      onValueChange={(value) => handleSelectChange('hostel', value)}
-                    >
-                      <SelectTrigger className="pl-10">
-                        <SelectValue placeholder="Select hostel" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {hostels.map(hostel => (
-                          <SelectItem key={hostel.id} value={hostel.id}>
-                            {hostel.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+              <Card className="border border-gray-200 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="hostel">Hostel Name</Label>
+                      <div className="relative">
+                        <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                        <Select 
+                          value={formData.hostel} 
+                          onValueChange={(value) => handleSelectChange('hostel', value)}
+                        >
+                          <SelectTrigger className="pl-10">
+                            <SelectValue placeholder="Select hostel" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {hostels.map(hostel => (
+                              <SelectItem key={hostel.id} value={hostel.id}>
+                                {hostel.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="floor">Floor Number</Label>
-                  <div className="relative">
-                    <Home className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
-                    <Select 
-                      value={formData.floor} 
-                      onValueChange={(value) => handleSelectChange('floor', value)}
-                    >
-                      <SelectTrigger className="pl-10">
-                        <SelectValue placeholder="Select floor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {floors.map(floor => (
-                          <SelectItem key={floor.id} value={floor.id}>
-                            {floor.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <Label htmlFor="floor">Floor Number</Label>
+                      <div className="relative">
+                        <Home className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                        <Select 
+                          value={formData.floor} 
+                          onValueChange={(value) => handleSelectChange('floor', value)}
+                        >
+                          <SelectTrigger className="pl-10">
+                            <SelectValue placeholder="Select floor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {floors.map(floor => (
+                              <SelectItem key={floor.id} value={floor.id}>
+                                {floor.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ) : (
-              <div className="space-y-2">
-                <Label htmlFor="assignedHostel">Assigned Hostel Block (Optional)</Label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
-                  <Select 
-                    value={formData.assignedHostel} 
-                    onValueChange={(value) => handleSelectChange('assignedHostel', value)}
-                  >
-                    <SelectTrigger className="pl-10">
-                      <SelectValue placeholder="Select hostel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {hostels.map(hostel => (
-                        <SelectItem key={hostel.id} value={hostel.id}>
-                          {hostel.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              <Card className="border border-gray-200 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="assignedHostel">Assigned Hostel Block (Optional)</Label>
+                    <div className="relative">
+                      <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                      <Select 
+                        value={formData.assignedHostel} 
+                        onValueChange={(value) => handleSelectChange('assignedHostel', value)}
+                      >
+                        <SelectTrigger className="pl-10">
+                          <SelectValue placeholder="Select hostel" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {hostels.map(hostel => (
+                            <SelectItem key={hostel.id} value={hostel.id}>
+                              {hostel.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             <Button 

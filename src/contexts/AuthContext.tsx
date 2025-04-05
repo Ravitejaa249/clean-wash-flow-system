@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,11 +78,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, userData: any) => {
     try {
       setIsLoading(true);
+      
+      // Ensure gender is a string, not passed as an enum or type
+      const formattedUserData = {
+        ...userData,
+        gender: userData.gender.toString() // Ensure it's a string
+      };
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: userData,
+          data: formattedUserData,
         },
       });
 
@@ -93,6 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: error.message,
           variant: 'destructive',
         });
+        console.error('Signup error:', error);
         return;
       }
 
@@ -113,6 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: signInError.message,
           variant: 'destructive',
         });
+        console.error('Sign in error after signup:', signInError);
         return;
       }
 
@@ -124,6 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: error.message || 'An unexpected error occurred',
         variant: 'destructive',
       });
+      console.error('General signup error:', error);
     } finally {
       setIsLoading(false);
     }
