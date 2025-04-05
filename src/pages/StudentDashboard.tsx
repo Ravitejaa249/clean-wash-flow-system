@@ -224,6 +224,10 @@ const StudentDashboard = () => {
         throw orderError;
       }
 
+      if (!orderData) {
+        throw new Error('Failed to create order');
+      }
+
       // Create order items
       const orderItems = cart.map(item => ({
         order_id: orderData.id,
