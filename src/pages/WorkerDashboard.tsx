@@ -30,6 +30,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import Logo from '@/components/Logo';
+import { Database } from '@/integrations/supabase/types';
 
 interface OrderStudent {
   full_name: string;
@@ -38,10 +39,12 @@ interface OrderStudent {
   floor: string;
 }
 
+type OrderStatus = Database['public']['Enums']['order_status'];
+
 interface Order {
   id: string;
   student_id: string;
-  status: string;
+  status: OrderStatus;
   total_price: number;
   pickup_date: string;
   delivery_date: string | null;
@@ -50,6 +53,16 @@ interface Order {
   worker_id: string | null;
   student: OrderStudent | null;
   items: any[] | null;
+}
+
+// Type guard to check if the student data is valid
+function isValidStudentData(student: any): student is OrderStudent {
+  return student && 
+    typeof student === 'object' && 
+    'full_name' in student && 
+    'gender' in student && 
+    'hostel' in student && 
+    'floor' in student;
 }
 
 const statusOptions = [
@@ -126,13 +139,19 @@ const WorkerDashboard = () => {
               return { ...order, items: null };
             }
 
-            // Ensure proper typing by validating student data
-            let validatedOrder: Order = {
-              ...order,
-              items,
-              student: order.student && typeof order.student === 'object' 
-                ? order.student as OrderStudent
-                : null
+            // Create a properly typed order with validated student data
+            const validatedOrder: Order = {
+              id: order.id,
+              student_id: order.student_id,
+              status: order.status,
+              total_price: order.total_price,
+              pickup_date: order.pickup_date,
+              delivery_date: order.delivery_date,
+              created_at: order.created_at,
+              notes: order.notes,
+              worker_id: order.worker_id,
+              items: items || null,
+              student: isValidStudentData(order.student) ? order.student : null
             };
 
             return validatedOrder;
@@ -229,13 +248,19 @@ const WorkerDashboard = () => {
               return { ...order, items: null };
             }
 
-            // Ensure proper typing by validating student data
-            let validatedOrder: Order = {
-              ...order,
-              items,
-              student: order.student && typeof order.student === 'object' 
-                ? order.student as OrderStudent
-                : null
+            // Create a properly typed order with validated student data
+            const validatedOrder: Order = {
+              id: order.id,
+              student_id: order.student_id,
+              status: order.status,
+              total_price: order.total_price,
+              pickup_date: order.pickup_date,
+              delivery_date: order.delivery_date,
+              created_at: order.created_at,
+              notes: order.notes,
+              worker_id: order.worker_id,
+              items: items || null,
+              student: isValidStudentData(order.student) ? order.student : null
             };
 
             return validatedOrder;
@@ -345,7 +370,7 @@ const WorkerDashboard = () => {
 
       // Update local state
       setMyOrders(myOrders.map(order => 
-        order.id === orderId ? { ...order, status: selectedStatus } : order
+        order.id === orderId ? { ...order, status: selectedStatus as OrderStatus } : order
       ));
 
       toast({
@@ -410,6 +435,19 @@ const WorkerDashboard = () => {
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+  };
+
+  // Helper function to display student information safely
+  const getStudentName = (student: OrderStudent | null) => {
+    return student?.full_name || 'Unknown Student';
+  };
+
+  // Helper function to display hostel information safely
+  const getStudentLocation = (student: OrderStudent | null) => {
+    if (student?.hostel && student?.floor) {
+      return `Block ${student.hostel}, Floor ${student.floor}`;
+    }
+    return 'N/A';
   };
 
   return (
@@ -489,11 +527,11 @@ const WorkerDashboard = () => {
                                 <div className="space-y-1 mt-2">
                                   <p className="text-sm flex items-center text-gray-600">
                                     <User className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                                    {order.student?.full_name || 'Unknown Student'}
+                                    {getStudentName(order.student)}
                                   </p>
                                   <p className="text-sm flex items-center text-gray-600">
                                     <Building className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                                    {order.student?.hostel ? `Block ${order.student.hostel}, Floor ${order.student.floor}` : 'N/A'}
+                                    {getStudentLocation(order.student)}
                                   </p>
                                   <p className="text-sm flex items-center text-gray-600">
                                     <CalendarClock className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
@@ -647,11 +685,11 @@ const WorkerDashboard = () => {
                                 <div className="space-y-1 mt-2">
                                   <p className="text-sm flex items-center text-gray-600">
                                     <User className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                                    {order.student?.full_name || 'Unknown Student'}
+                                    {getStudentName(order.student)}
                                   </p>
                                   <p className="text-sm flex items-center text-gray-600">
                                     <Building className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                                    {order.student?.hostel ? `Block ${order.student.hostel}, Floor ${order.student.floor}` : 'N/A'}
+                                    {getStudentLocation(order.student)}
                                   </p>
                                   <p className="text-sm flex items-center text-gray-600">
                                     <CalendarClock className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
