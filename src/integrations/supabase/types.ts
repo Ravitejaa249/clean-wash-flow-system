@@ -9,7 +9,150 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      clothing_items: {
+        Row: {
+          description: string | null
+          gender: Database["public"]["Enums"]["gender_type"]
+          id: string
+          name: string
+          price: number
+        }
+        Insert: {
+          description?: string | null
+          gender: Database["public"]["Enums"]["gender_type"]
+          id?: string
+          name: string
+          price: number
+        }
+        Update: {
+          description?: string | null
+          gender?: Database["public"]["Enums"]["gender_type"]
+          id?: string
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          clothing_item_id: string
+          id: string
+          order_id: string
+          price: number
+          quantity: number
+        }
+        Insert: {
+          clothing_item_id: string
+          id?: string
+          order_id: string
+          price: number
+          quantity: number
+        }
+        Update: {
+          clothing_item_id?: string
+          id?: string
+          order_id?: string
+          price?: number
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_clothing_item_id_fkey"
+            columns: ["clothing_item_id"]
+            isOneToOne: false
+            referencedRelation: "clothing_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          delivery_date: string | null
+          id: string
+          notes: string | null
+          pickup_date: string
+          status: Database["public"]["Enums"]["order_status"]
+          student_id: string
+          total_price: number
+          updated_at: string
+          worker_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          pickup_date?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          student_id: string
+          total_price: number
+          updated_at?: string
+          worker_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          pickup_date?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          student_id?: string
+          total_price?: number
+          updated_at?: string
+          worker_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          assigned_hostel: string | null
+          created_at: string
+          email: string
+          floor: string | null
+          full_name: string
+          gender: Database["public"]["Enums"]["gender_type"]
+          hostel: string | null
+          id: string
+          registration_number: string | null
+          role: string
+          worker_id: string | null
+        }
+        Insert: {
+          assigned_hostel?: string | null
+          created_at?: string
+          email: string
+          floor?: string | null
+          full_name: string
+          gender: Database["public"]["Enums"]["gender_type"]
+          hostel?: string | null
+          id: string
+          registration_number?: string | null
+          role: string
+          worker_id?: string | null
+        }
+        Update: {
+          assigned_hostel?: string | null
+          created_at?: string
+          email?: string
+          floor?: string | null
+          full_name?: string
+          gender?: Database["public"]["Enums"]["gender_type"]
+          hostel?: string | null
+          id?: string
+          registration_number?: string | null
+          role?: string
+          worker_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +161,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      gender_type: "male" | "female" | "other"
+      order_status:
+        | "pending"
+        | "accepted"
+        | "processing"
+        | "completed"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never

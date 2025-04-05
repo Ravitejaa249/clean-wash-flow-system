@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,28 +9,26 @@ import { toast } from "@/components/ui/use-toast";
 import { Mail, Lock, ArrowLeft } from 'lucide-react';
 import Logo from '@/components/Logo';
 import FormSection from '@/components/FormSection';
+import { useAuth } from '@/contexts/AuthContext';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const { signIn, isLoading, user, profile } = useAuth();
   const [userType, setUserType] = useState<'student' | 'worker'>('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Redirect if user is already logged in
+    if (user && profile) {
+      const redirectPath = profile.role === 'student' ? '/student-dashboard' : '/worker-dashboard';
+      navigate(redirectPath);
+    }
+  }, [user, profile, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    // Simulate login - in a real app you would call an API here
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Success",
-        description: `Logged in as ${userType}`,
-      });
-      // Redirect based on user type
-      navigate(userType === 'student' ? '/student-dashboard' : '/worker-dashboard');
-    }, 1500);
+    await signIn(email, password);
   };
 
   return (

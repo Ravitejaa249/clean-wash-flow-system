@@ -10,6 +10,7 @@ import { User, Mail, Lock, Building, ArrowLeft, Hash, Home } from 'lucide-react'
 import Logo from '@/components/Logo';
 import FormSection from '@/components/FormSection';
 import PasswordStrengthMeter from '@/components/PasswordStrengthMeter';
+import { useAuth } from '@/contexts/AuthContext';
 
 const hostels = [
   { id: 'A', name: 'Block A' },
@@ -26,6 +27,7 @@ const floors = Array.from({ length: 5 }, (_, i) => ({
 const SignupPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { signUp, isLoading } = useAuth();
   const role = location.state?.role || 'student';
 
   const [formData, setFormData] = useState({
@@ -37,8 +39,8 @@ const SignupPage = () => {
     hostel: '',
     floor: '',
     assignedHostel: '',
+    gender: '',
   });
-  const [isLoading, setIsLoading] = useState(false);
 
   // Generate a random worker ID on mount if the role is worker
   useEffect(() => {
@@ -57,20 +59,39 @@ const SignupPage = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    // Simulate signup - in a real app you would call an API here
-    setTimeout(() => {
-      setIsLoading(false);
+    
+    if (!formData.gender) {
       toast({
-        title: "Account created",
-        description: `Your ${role} account has been created successfully`,
+        title: "Gender is required",
+        description: "Please select your gender to continue",
+        variant: "destructive"
       });
-      // Redirect to the appropriate dashboard
-      navigate(role === 'student' ? '/student-dashboard' : '/worker-dashboard');
-    }, 1500);
+      return;
+    }
+
+    if (role === 'student' && (!formData.hostel || !formData.floor)) {
+      toast({
+        title: "Incomplete information",
+        description: "Please fill in all the required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const userData = {
+      full_name: formData.fullName,
+      gender: formData.gender,
+      role: role,
+      registration_number: role === 'student' ? formData.registrationNumber : null,
+      worker_id: role === 'worker' ? formData.workerId : null,
+      hostel: role === 'student' ? formData.hostel : null,
+      floor: role === 'student' ? formData.floor : null,
+      assigned_hostel: role === 'worker' ? formData.assignedHostel : null,
+    };
+
+    await signUp(formData.email, formData.password, userData);
   };
 
   const getTitle = () => {
@@ -116,6 +137,24 @@ const SignupPage = () => {
                   required
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gender">Gender</Label>
+              <Select 
+                value={formData.gender} 
+                onValueChange={(value) => handleSelectChange('gender', value)}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {role === 'student' ? (
