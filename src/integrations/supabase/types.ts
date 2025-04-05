@@ -118,7 +118,7 @@ export type Database = {
           email: string
           floor: string | null
           full_name: string
-          gender: Database["public"]["Enums"]["gender_type"]
+          gender: string
           hostel: string | null
           id: string
           registration_number: string | null
@@ -131,7 +131,7 @@ export type Database = {
           email: string
           floor?: string | null
           full_name: string
-          gender: Database["public"]["Enums"]["gender_type"]
+          gender: string
           hostel?: string | null
           id: string
           registration_number?: string | null
@@ -144,7 +144,7 @@ export type Database = {
           email?: string
           floor?: string | null
           full_name?: string
-          gender?: Database["public"]["Enums"]["gender_type"]
+          gender?: string
           hostel?: string | null
           id?: string
           registration_number?: string | null

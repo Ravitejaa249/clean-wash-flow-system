@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,17 +80,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Ensure gender is a string, not passed as an enum or type
-      const formattedUserData = {
-        ...userData,
-        gender: userData.gender.toString() // Ensure it's a string
-      };
-
+      // No need to convert gender to string anymore as it's already string in the database
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: formattedUserData,
+          data: userData,
         },
       });
 

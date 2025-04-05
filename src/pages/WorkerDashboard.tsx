@@ -158,7 +158,7 @@ const WorkerDashboard = () => {
           })
         );
 
-        setOrders(ordersWithItems);
+        setOrders(ordersWithItems as Order[]);
         setLoading(prev => ({ ...prev, orders: false }));
       } catch (err) {
         console.error('Unexpected error in fetchAvailableOrders:', err);
@@ -267,7 +267,7 @@ const WorkerDashboard = () => {
           })
         );
 
-        setMyOrders(ordersWithItems);
+        setMyOrders(ordersWithItems as Order[]);
         setLoading(prev => ({ ...prev, myOrders: false }));
       } catch (err) {
         console.error('Unexpected error in fetchMyOrders:', err);
