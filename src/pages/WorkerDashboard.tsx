@@ -31,6 +31,13 @@ import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import Logo from '@/components/Logo';
 
+interface OrderStudent {
+  full_name: string;
+  gender: string;
+  hostel: string;
+  floor: string;
+}
+
 interface Order {
   id: string;
   student_id: string;
@@ -41,12 +48,7 @@ interface Order {
   created_at: string;
   notes: string | null;
   worker_id: string | null;
-  student: {
-    full_name: string;
-    gender: string;
-    hostel: string;
-    floor: string;
-  } | null;
+  student: OrderStudent | null;
   items: any[] | null;
 }
 
@@ -75,60 +77,78 @@ const WorkerDashboard = () => {
   // Fetch available orders
   useEffect(() => {
     const fetchAvailableOrders = async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          student:student_id (
-            full_name,
-            gender,
-            hostel,
-            floor
-          )
-        `)
-        .eq('status', 'pending')
-        .is('worker_id', null)
-        .order('created_at', { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            student:student_id (
+              full_name,
+              gender,
+              hostel,
+              floor
+            )
+          `)
+          .eq('status', 'pending')
+          .is('worker_id', null)
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching available orders:', error);
+        if (error) {
+          console.error('Error fetching available orders:', error);
+          toast({
+            title: 'Error',
+            description: 'Could not load available orders',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        // Fetch items for each order
+        const ordersWithItems = await Promise.all(
+          (data || []).map(async (order) => {
+            const { data: items, error: itemsError } = await supabase
+              .from('order_items')
+              .select(`
+                id,
+                quantity,
+                price,
+                clothing_items (
+                  id,
+                  name,
+                  price,
+                  description
+                )
+              `)
+              .eq('order_id', order.id);
+
+            if (itemsError) {
+              console.error('Error fetching order items:', itemsError);
+              return { ...order, items: null };
+            }
+
+            // Ensure proper typing by validating student data
+            let validatedOrder: Order = {
+              ...order,
+              items,
+              student: order.student && typeof order.student === 'object' 
+                ? order.student as OrderStudent
+                : null
+            };
+
+            return validatedOrder;
+          })
+        );
+
+        setOrders(ordersWithItems);
+        setLoading(prev => ({ ...prev, orders: false }));
+      } catch (err) {
+        console.error('Unexpected error in fetchAvailableOrders:', err);
         toast({
           title: 'Error',
-          description: 'Could not load available orders',
+          description: 'An unexpected error occurred while loading orders',
           variant: 'destructive',
         });
-        return;
       }
-
-      // Fetch items for each order
-      const ordersWithItems = await Promise.all(
-        (data || []).map(async (order) => {
-          const { data: items, error: itemsError } = await supabase
-            .from('order_items')
-            .select(`
-              id,
-              quantity,
-              price,
-              clothing_items (
-                id,
-                name,
-                price,
-                description
-              )
-            `)
-            .eq('order_id', order.id);
-
-          if (itemsError) {
-            console.error('Error fetching order items:', itemsError);
-            return { ...order, items: null };
-          }
-
-          return { ...order, items };
-        })
-      );
-
-      setOrders(ordersWithItems);
-      setLoading(prev => ({ ...prev, orders: false }));
     };
 
     fetchAvailableOrders();
@@ -159,61 +179,79 @@ const WorkerDashboard = () => {
     const fetchMyOrders = async () => {
       if (!user?.id) return;
       
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          student:student_id (
-            full_name,
-            gender,
-            hostel,
-            floor
-          )
-        `)
-        .eq('worker_id', user.id)
-        .neq('status', 'completed')
-        .neq('status', 'cancelled')
-        .order('created_at', { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            student:student_id (
+              full_name,
+              gender,
+              hostel,
+              floor
+            )
+          `)
+          .eq('worker_id', user.id)
+          .neq('status', 'completed')
+          .neq('status', 'cancelled')
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching my orders:', error);
+        if (error) {
+          console.error('Error fetching my orders:', error);
+          toast({
+            title: 'Error',
+            description: 'Could not load your assigned orders',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        // Fetch items for each order
+        const ordersWithItems = await Promise.all(
+          (data || []).map(async (order) => {
+            const { data: items, error: itemsError } = await supabase
+              .from('order_items')
+              .select(`
+                id,
+                quantity,
+                price,
+                clothing_items (
+                  id,
+                  name,
+                  price,
+                  description
+                )
+              `)
+              .eq('order_id', order.id);
+
+            if (itemsError) {
+              console.error('Error fetching order items:', itemsError);
+              return { ...order, items: null };
+            }
+
+            // Ensure proper typing by validating student data
+            let validatedOrder: Order = {
+              ...order,
+              items,
+              student: order.student && typeof order.student === 'object' 
+                ? order.student as OrderStudent
+                : null
+            };
+
+            return validatedOrder;
+          })
+        );
+
+        setMyOrders(ordersWithItems);
+        setLoading(prev => ({ ...prev, myOrders: false }));
+      } catch (err) {
+        console.error('Unexpected error in fetchMyOrders:', err);
         toast({
           title: 'Error',
-          description: 'Could not load your assigned orders',
+          description: 'An unexpected error occurred while loading your orders',
           variant: 'destructive',
         });
-        return;
       }
-
-      // Fetch items for each order
-      const ordersWithItems = await Promise.all(
-        (data || []).map(async (order) => {
-          const { data: items, error: itemsError } = await supabase
-            .from('order_items')
-            .select(`
-              id,
-              quantity,
-              price,
-              clothing_items (
-                id,
-                name,
-                price,
-                description
-              )
-            `)
-            .eq('order_id', order.id);
-
-          if (itemsError) {
-            console.error('Error fetching order items:', itemsError);
-            return { ...order, items: null };
-          }
-
-          return { ...order, items };
-        })
-      );
-
-      setMyOrders(ordersWithItems);
-      setLoading(prev => ({ ...prev, myOrders: false }));
     };
 
     fetchMyOrders();
@@ -451,7 +489,7 @@ const WorkerDashboard = () => {
                                 <div className="space-y-1 mt-2">
                                   <p className="text-sm flex items-center text-gray-600">
                                     <User className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                                    {order.student?.full_name}
+                                    {order.student?.full_name || 'Unknown Student'}
                                   </p>
                                   <p className="text-sm flex items-center text-gray-600">
                                     <Building className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
@@ -609,7 +647,7 @@ const WorkerDashboard = () => {
                                 <div className="space-y-1 mt-2">
                                   <p className="text-sm flex items-center text-gray-600">
                                     <User className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                                    {order.student?.full_name}
+                                    {order.student?.full_name || 'Unknown Student'}
                                   </p>
                                   <p className="text-sm flex items-center text-gray-600">
                                     <Building className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
