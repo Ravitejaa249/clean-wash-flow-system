@@ -65,6 +65,16 @@ function isValidStudentData(student: any): student is OrderStudent {
     'floor' in student;
 }
 
+// Helper function to create a fallback student object when there's an error
+function createFallbackStudent(): OrderStudent {
+  return {
+    full_name: 'Unknown Student',
+    gender: 'unknown',
+    hostel: 'N/A',
+    floor: 'N/A'
+  };
+}
+
 const statusOptions = [
   { value: 'pending', label: 'Pending' },
   { value: 'accepted', label: 'Accepted' },
@@ -139,6 +149,15 @@ const WorkerDashboard = () => {
               return { ...order, items: null };
             }
 
+            // Handle student data properly - if we have error or invalid data, use fallback
+            let studentData = null;
+            if (isValidStudentData(order.student)) {
+              studentData = order.student;
+            } else if (order.student && 'error' in order.student) {
+              console.error('Error with student data:', order.student);
+              studentData = createFallbackStudent();
+            }
+
             // Create a properly typed order with validated student data
             const validatedOrder: Order = {
               id: order.id,
@@ -151,7 +170,7 @@ const WorkerDashboard = () => {
               notes: order.notes,
               worker_id: order.worker_id,
               items: items || null,
-              student: isValidStudentData(order.student) ? order.student : null
+              student: studentData
             };
 
             return validatedOrder;
@@ -248,6 +267,15 @@ const WorkerDashboard = () => {
               return { ...order, items: null };
             }
 
+            // Handle student data properly - if we have error or invalid data, use fallback
+            let studentData = null;
+            if (isValidStudentData(order.student)) {
+              studentData = order.student;
+            } else if (order.student && 'error' in order.student) {
+              console.error('Error with student data:', order.student);
+              studentData = createFallbackStudent();
+            }
+
             // Create a properly typed order with validated student data
             const validatedOrder: Order = {
               id: order.id,
@@ -260,7 +288,7 @@ const WorkerDashboard = () => {
               notes: order.notes,
               worker_id: order.worker_id,
               items: items || null,
-              student: isValidStudentData(order.student) ? order.student : null
+              student: studentData
             };
 
             return validatedOrder;
