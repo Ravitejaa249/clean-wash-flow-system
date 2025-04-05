@@ -22,6 +22,9 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { Database } from '@/integrations/supabase/types';
+
+type OrderStatus = Database['public']['Enums']['order_status'];
 
 interface ClothingItem {
   id: string;
@@ -35,7 +38,7 @@ interface ClothingItem {
 interface Order {
   id: string;
   created_at: string;
-  status: string;
+  status: OrderStatus;
   total_price: number;
   pickup_date: string;
   delivery_date: string | null;
@@ -44,7 +47,7 @@ interface Order {
 }
 
 const StudentDashboard = () => {
-  const { signOut, profile } = useAuth();
+  const { signOut, profile, user } = useAuth();
   const [clothingItems, setClothingItems] = useState<ClothingItem[]>([]);
   const [cart, setCart] = useState<ClothingItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -86,10 +89,13 @@ const StudentDashboard = () => {
 
   // Fetch user's orders
   useEffect(() => {
+    if (!user?.id) return;
+    
     const fetchOrders = async () => {
       const { data, error } = await supabase
         .from('orders')
         .select('*')
+        .eq('student_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -143,7 +149,7 @@ const StudentDashboard = () => {
           event: '*', 
           schema: 'public', 
           table: 'orders',
-          filter: `student_id=eq.${profile?.id}` 
+          filter: `student_id=eq.${user.id}` 
         }, 
         () => {
           // Refresh orders when there's a change
@@ -155,7 +161,7 @@ const StudentDashboard = () => {
     return () => {
       supabase.removeChannel(ordersSubscription);
     };
-  }, [profile]);
+  }, [user]);
 
   const addToCart = (item: ClothingItem) => {
     const existingItem = cart.find(cartItem => cartItem.id === item.id);
@@ -195,6 +201,15 @@ const StudentDashboard = () => {
   };
 
   const handlePlaceOrder = async () => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in before placing an order',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (cart.length === 0) {
       toast({
         title: 'Empty cart',
@@ -211,7 +226,7 @@ const StudentDashboard = () => {
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
-          student_id: profile?.id,
+          student_id: user.id,
           status: 'pending',
           total_price: calculateTotal(),
           pickup_date: new Date(pickupDate).toISOString(),
@@ -267,6 +282,34 @@ const StudentDashboard = () => {
 
   const handleOrderClick = (orderId: string) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
+  };
+
+  const cancelOrder = async (orderId: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', orderId)
+        .eq('student_id', user?.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: 'Order cancelled',
+        description: 'Your order has been cancelled successfully',
+      });
+
+      // Order list will update automatically via the real-time subscription
+    } catch (error: any) {
+      console.error('Error cancelling order:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to cancel order',
+        variant: 'destructive',
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {

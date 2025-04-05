@@ -99,6 +99,8 @@ const WorkerDashboard = () => {
 
   // Fetch available orders
   useEffect(() => {
+    if (!user?.id) return;
+
     const fetchAvailableOrders = async () => {
       try {
         const { data, error } = await supabase
@@ -210,13 +212,13 @@ const WorkerDashboard = () => {
     return () => {
       supabase.removeChannel(ordersSubscription);
     };
-  }, []);
+  }, [user]);
 
   // Fetch orders assigned to this worker
   useEffect(() => {
+    if (!user?.id) return;
+    
     const fetchMyOrders = async () => {
-      if (!user?.id) return;
-      
       try {
         const { data, error } = await supabase
           .from('orders')
@@ -331,13 +333,22 @@ const WorkerDashboard = () => {
   }, [user]);
 
   const acceptOrder = async (orderId: string) => {
+    if (!user?.id) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in before accepting orders',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setLoading(prev => ({ ...prev, acceptOrder: true }));
     
     try {
       const { error } = await supabase
         .from('orders')
         .update({ 
-          worker_id: user?.id,
+          worker_id: user.id,
           status: 'accepted'
         })
         .eq('id', orderId);
@@ -351,8 +362,7 @@ const WorkerDashboard = () => {
         description: 'You have successfully accepted this order',
       });
 
-      // Remove from available orders list
-      setOrders(orders.filter(order => order.id !== orderId));
+      // Order lists will update automatically via real-time subscriptions
     } catch (error: any) {
       console.error('Error accepting order:', error);
       toast({
@@ -387,6 +397,11 @@ const WorkerDashboard = () => {
         updateData.delivery_date = new Date().toISOString();
       }
 
+      // Add delivery notes if provided
+      if (deliveryNotes.trim() && selectedStatus === 'completed') {
+        updateData.notes = deliveryNotes.trim();
+      }
+
       const { error } = await supabase
         .from('orders')
         .update(updateData)
@@ -395,11 +410,6 @@ const WorkerDashboard = () => {
       if (error) {
         throw error;
       }
-
-      // Update local state
-      setMyOrders(myOrders.map(order => 
-        order.id === orderId ? { ...order, status: selectedStatus as OrderStatus } : order
-      ));
 
       toast({
         title: 'Status updated',
@@ -410,6 +420,8 @@ const WorkerDashboard = () => {
       setSelectedStatus('');
       setDeliveryNotes('');
       setExpandedOrder(null);
+      
+      // Orders will update via real-time subscription
     } catch (error: any) {
       console.error('Error updating order status:', error);
       toast({
