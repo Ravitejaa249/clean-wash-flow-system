@@ -19,6 +19,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   realtime: {
     params: {
       eventsPerSecond: 10
+    },
+    logger: (error) => {
+      console.error('Supabase Realtime error:', error);
     }
   }
 });

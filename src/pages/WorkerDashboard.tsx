@@ -98,15 +98,16 @@ const WorkerDashboard = () => {
 
   // Fetch all orders (both pending and active)
   const fetchAllOrders = async () => {
-    if (!user?.id) return;
-
     try {
+      console.log('Fetching all orders...');
+      setLoading(prev => ({ ...prev, orders: true, activeOrders: true }));
+      
       // Fetch pending orders
       const { data: pendingData, error: pendingError } = await supabase
         .from('orders')
         .select(`
           *,
-          student:student_id (
+          student:profiles(
             full_name,
             gender,
             hostel,
@@ -123,15 +124,18 @@ const WorkerDashboard = () => {
           description: 'Could not load pending orders',
           variant: 'destructive',
         });
+        setLoading(prev => ({ ...prev, orders: false }));
         return;
       }
+
+      console.log('Pending orders fetched:', pendingData);
 
       // Fetch active orders (accepted, processing)
       const { data: activeData, error: activeError } = await supabase
         .from('orders')
         .select(`
           *,
-          student:student_id (
+          student:profiles(
             full_name,
             gender,
             hostel,
@@ -148,8 +152,11 @@ const WorkerDashboard = () => {
           description: 'Could not load active orders',
           variant: 'destructive',
         });
+        setLoading(prev => ({ ...prev, activeOrders: false }));
         return;
       }
+
+      console.log('Active orders fetched:', activeData);
 
       // Process pending orders
       const pendingOrdersWithItems = await processOrderData(pendingData || []);
@@ -168,74 +175,88 @@ const WorkerDashboard = () => {
         description: 'An unexpected error occurred while loading orders',
         variant: 'destructive',
       });
+      setLoading(prev => ({ ...prev, orders: false, activeOrders: false }));
     }
   };
 
   // Helper function to process order data and fetch items
   const processOrderData = async (orderData: any[]) => {
-    const ordersWithItems = await Promise.all(
-      orderData.map(async (order) => {
-        const { data: items, error: itemsError } = await supabase
-          .from('order_items')
-          .select(`
-            id,
-            quantity,
-            price,
-            clothing_items (
+    try {
+      const ordersWithItems = await Promise.all(
+        orderData.map(async (order) => {
+          console.log('Processing order:', order.id);
+          
+          // Handle student data properly
+          let studentData = null;
+          if (order.student) {
+            if (isValidStudentData(order.student)) {
+              studentData = order.student;
+            } else {
+              console.warn('Invalid student data for order:', order.id);
+              studentData = createFallbackStudent();
+            }
+          } else {
+            console.warn('No student data for order:', order.id);
+            studentData = createFallbackStudent();
+          }
+
+          // Fetch order items
+          const { data: items, error: itemsError } = await supabase
+            .from('order_items')
+            .select(`
               id,
-              name,
+              quantity,
               price,
-              description
-            )
-          `)
-          .eq('order_id', order.id);
+              clothing_items (
+                id,
+                name,
+                price,
+                description
+              )
+            `)
+            .eq('order_id', order.id);
 
-        if (itemsError) {
-          console.error('Error fetching order items:', itemsError);
-          return { ...order, items: null };
-        }
+          if (itemsError) {
+            console.error('Error fetching order items:', itemsError);
+            return { ...order, items: null, student: studentData };
+          }
 
-        // Handle student data properly - if we have error or invalid data, use fallback
-        let studentData = null;
-        if (isValidStudentData(order.student)) {
-          studentData = order.student;
-        } else if (order.student && 'error' in order.student) {
-          console.error('Error with student data:', order.student);
-          studentData = createFallbackStudent();
-        }
+          // Create a properly typed order with validated student data
+          const validatedOrder: Order = {
+            id: order.id,
+            student_id: order.student_id,
+            status: order.status,
+            total_price: order.total_price,
+            pickup_date: order.pickup_date,
+            delivery_date: order.delivery_date,
+            created_at: order.created_at,
+            notes: order.notes,
+            worker_id: order.worker_id,
+            items: items || null,
+            student: studentData
+          };
 
-        // Create a properly typed order with validated student data
-        const validatedOrder: Order = {
-          id: order.id,
-          student_id: order.student_id,
-          status: order.status,
-          total_price: order.total_price,
-          pickup_date: order.pickup_date,
-          delivery_date: order.delivery_date,
-          created_at: order.created_at,
-          notes: order.notes,
-          worker_id: order.worker_id,
-          items: items || null,
-          student: studentData
-        };
+          return validatedOrder;
+        })
+      );
 
-        return validatedOrder;
-      })
-    );
-
-    return ordersWithItems as Order[];
+      return ordersWithItems as Order[];
+    } catch (error) {
+      console.error('Error in processOrderData:', error);
+      return [];
+    }
   };
 
   // Set up initial data loading and real-time subscriptions
   useEffect(() => {
-    if (!user?.id) return;
-
+    console.log('Setting up data loading and subscriptions');
+    
     // Fetch all orders initially
     fetchAllOrders();
 
     // Set up real-time subscription for all orders
     const ordersChannel = supabase
-      .channel('all-orders')
+      .channel('public:orders')
       .on('postgres_changes', 
         { 
           event: '*', 
@@ -243,16 +264,19 @@ const WorkerDashboard = () => {
           table: 'orders'
         }, 
         (payload) => {
-          console.log('Order updated:', payload);
+          console.log('Order update received:', payload);
           fetchAllOrders();
         }
       )
-      .subscribe();
+      .subscribe(status => {
+        console.log('Subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up subscriptions');
       supabase.removeChannel(ordersChannel);
     };
-  }, [user]);
+  }, []);
 
   // Update order status
   const updateOrderStatus = async (orderId: string) => {
@@ -286,6 +310,8 @@ const WorkerDashboard = () => {
       if (deliveryNotes.trim() && selectedStatus === 'completed') {
         updateData.notes = deliveryNotes.trim();
       }
+
+      console.log('Updating order:', orderId, 'with data:', updateData);
 
       const { error } = await supabase
         .from('orders')
