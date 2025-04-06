@@ -11,166 +11,111 @@ export function useOrdersData() {
     activeOrders: true,
   });
 
-  // Helper function to process order data and fetch items
-  const processOrderData = async (orderData: any[]) => {
+  // Single query to fetch orders with all related data
+  const fetchOrders = async (statusFilters: string[]) => {
     try {
-      if (!orderData || orderData.length === 0) return [];
-      
-      const ordersWithItems = await Promise.all(
-        orderData.map(async (order) => {
-          console.log('Processing order:', order.id);
-          
-          // Handle student data properly
-          let studentData = null;
-          if (order.student) {
-            if (isValidStudentData(order.student)) {
-              studentData = order.student;
-            } else {
-              console.warn('Invalid student data for order:', order.id);
-              studentData = createFallbackStudent();
-            }
-          } else {
-            console.warn('No student data for order:', order.id);
-            studentData = createFallbackStudent();
-          }
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          student:profiles(full_name, gender, hostel, floor),
+          order_items(
+            id, 
+            quantity, 
+            price,
+            clothing_items(id, name, price, description)
+          )
+        `)
+        .in('status', statusFilters)
+        .order('created_at', { ascending: false });
 
-          // Fetch order items with correct query string
-          const { data: items, error: itemsError } = await supabase
-            .from('order_items')
-            .select('id, quantity, price, clothing_items(id, name, price, description)')
-            .eq('order_id', order.id);
-
-          if (itemsError) {
-            console.error('Error fetching order items:', itemsError);
-            return { ...order, items: null, student: studentData };
-          }
-
-          // Create a properly typed order with validated student data
-          const validatedOrder: Order = {
-            id: order.id,
-            student_id: order.student_id,
-            status: order.status,
-            total_price: order.total_price,
-            pickup_date: order.pickup_date,
-            delivery_date: order.delivery_date,
-            created_at: order.created_at,
-            notes: order.notes,
-            worker_id: order.worker_id,
-            items: items || null,
-            student: studentData
-          };
-
-          return validatedOrder;
-        })
-      );
-
-      return ordersWithItems as Order[];
+      if (error) throw error;
+      return data;
     } catch (error) {
-      console.error('Error in processOrderData:', error);
-      return [];
-    }
-  };
-
-  // Fetch all orders (both pending and active)
-  const fetchAllOrders = async () => {
-    try {
-      console.log('Fetching all orders...');
-      setLoading(prev => ({ ...prev, orders: true, activeOrders: true }));
-      
-      // Fetch pending orders with updated select syntax
-      const { data: pendingData, error: pendingError } = await supabase
-        .from('orders')
-        .select('*, student:profiles(full_name, gender, hostel, floor)')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-
-      if (pendingError) {
-        console.error('Error fetching pending orders:', pendingError);
-        toast({
-          title: 'Error',
-          description: 'Could not load pending orders. Please try again later.',
-          variant: 'destructive',
-        });
-        setLoading(prev => ({ ...prev, orders: false }));
-      } else {
-        console.log('Pending orders fetched:', pendingData);
-        
-        // Process pending orders
-        const pendingOrdersWithItems = await processOrderData(pendingData || []);
-        setOrders(pendingOrdersWithItems);
-        setLoading(prev => ({ ...prev, orders: false }));
-      }
-
-      // Fetch active orders (accepted, processing) with updated select syntax
-      const { data: activeData, error: activeError } = await supabase
-        .from('orders')
-        .select('*, student:profiles(full_name, gender, hostel, floor)')
-        .in('status', ['accepted', 'processing'])
-        .order('created_at', { ascending: false });
-
-      if (activeError) {
-        console.error('Error fetching active orders:', activeError);
-        toast({
-          title: 'Error',
-          description: 'Could not load active orders. Please try again later.',
-          variant: 'destructive',
-        });
-        setLoading(prev => ({ ...prev, activeOrders: false }));
-      } else {
-        console.log('Active orders fetched:', activeData);
-        
-        // Process active orders
-        const activeOrdersWithItems = await processOrderData(activeData || []);
-        setActiveOrders(activeOrdersWithItems);
-        setLoading(prev => ({ ...prev, activeOrders: false }));
-      }
-
-    } catch (err) {
-      console.error('Unexpected error in fetchAllOrders:', err);
+      console.error('Error fetching orders:', error);
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred while loading orders',
+        description: 'Could not load orders. Please try again later.',
         variant: 'destructive',
       });
-      setLoading(prev => ({ ...prev, orders: false, activeOrders: false }));
+      return null;
     }
   };
 
-  // Set up initial data loading
+  // Process and validate order data structure
+  const processOrders = (rawOrders: any[]): Order[] => {
+    return rawOrders.map((order) => {
+      // Validate student data
+      let studentData = createFallbackStudent();
+      if (order.student && isValidStudentData(order.student)) {
+        studentData = order.student;
+      }
+
+      // Map order items
+      const items = order.order_items?.map((item: any) => ({
+        id: item.id,
+        quantity: item.quantity,
+        price: item.price,
+        clothing_item: item.clothing_items,
+      })) || null;
+
+      return {
+        id: order.id,
+        student_id: order.student_id,
+        status: order.status,
+        total_price: order.total_price,
+        pickup_date: order.pickup_date,
+        delivery_date: order.delivery_date,
+        created_at: order.created_at,
+        notes: order.notes,
+        worker_id: order.worker_id,
+        items,
+        student: studentData,
+      };
+    });
+  };
+
+  // Fetch and update orders
+  const updateOrders = async () => {
+    try {
+      setLoading({ orders: true, activeOrders: true });
+
+      // Fetch both order types in parallel
+      const [pendingData, activeData] = await Promise.all([
+        fetchOrders(['pending']),
+        fetchOrders(['accepted', 'processing']),
+      ]);
+
+      if (pendingData) setOrders(processOrders(pendingData));
+      if (activeData) setActiveOrders(processOrders(activeData));
+      
+    } catch (error) {
+      console.error('Error updating orders:', error);
+    } finally {
+      setLoading({ orders: false, activeOrders: false });
+    }
+  };
+
+  // Initial data load
   useEffect(() => {
-    console.log('Setting up data loading');
-    
-    // Fetch all orders initially
-    fetchAllOrders();
+    updateOrders();
 
-    // Set up real-time subscription for all orders
-    const ordersChannel = supabase
-      .channel('orders-channel')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'orders'
-        }, 
-        (payload) => {
-          console.log('Order update received:', payload);
-          fetchAllOrders();
-        }
+    // Realtime subscription
+    const channel = supabase
+      .channel('orders-realtime')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => updateOrders()
       )
-      .subscribe(status => {
-        console.log('Subscription status:', status);
-      });
+      .subscribe();
 
-    return () => {
-      console.log('Cleaning up subscriptions');
-      supabase.removeChannel(ordersChannel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   return {
     orders,
     activeOrders,
     loading,
-    refreshOrders: fetchAllOrders
+    refreshOrders: updateOrders
   };
 }
