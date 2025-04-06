@@ -41,7 +41,12 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
   };
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+    } catch (error) {
+      console.error('Invalid date format:', dateString);
+      return 'Invalid date';
+    }
   };
 
   const getStatusColor = (status: string) => {

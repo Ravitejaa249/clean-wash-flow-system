@@ -7,10 +7,11 @@ import { Clock, Package } from 'lucide-react';
 import Logo from '@/components/Logo';
 import OrderList from '@/components/worker/OrderList';
 import { useOrdersData } from '@/hooks/useOrdersData';
+import { Toaster } from '@/components/ui/toaster';
 
 const WorkerDashboard = () => {
   const { signOut, profile } = useAuth();
-  const { orders, activeOrders, loading } = useOrdersData();
+  const { orders, activeOrders, loading, refreshOrders } = useOrdersData();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -80,6 +81,8 @@ const WorkerDashboard = () => {
           </p>
         </div>
       </footer>
+      
+      <Toaster />
     </div>
   );
 };

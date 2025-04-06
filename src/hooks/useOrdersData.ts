@@ -15,6 +15,8 @@ export function useOrdersData() {
   // Helper function to process order data and fetch items
   const processOrderData = async (orderData: any[]) => {
     try {
+      if (!orderData || orderData.length === 0) return [];
+      
       const ordersWithItems = await Promise.all(
         orderData.map(async (order) => {
           console.log('Processing order:', order.id);
@@ -105,14 +107,18 @@ export function useOrdersData() {
         console.error('Error fetching pending orders:', pendingError);
         toast({
           title: 'Error',
-          description: 'Could not load pending orders',
+          description: 'Could not load pending orders. Please try again later.',
           variant: 'destructive',
         });
         setLoading(prev => ({ ...prev, orders: false }));
-        return;
+      } else {
+        console.log('Pending orders fetched:', pendingData);
+        
+        // Process pending orders
+        const pendingOrdersWithItems = await processOrderData(pendingData || []);
+        setOrders(pendingOrdersWithItems);
+        setLoading(prev => ({ ...prev, orders: false }));
       }
-
-      console.log('Pending orders fetched:', pendingData);
 
       // Fetch active orders (accepted, processing)
       const { data: activeData, error: activeError } = await supabase
@@ -133,24 +139,18 @@ export function useOrdersData() {
         console.error('Error fetching active orders:', activeError);
         toast({
           title: 'Error',
-          description: 'Could not load active orders',
+          description: 'Could not load active orders. Please try again later.',
           variant: 'destructive',
         });
         setLoading(prev => ({ ...prev, activeOrders: false }));
-        return;
+      } else {
+        console.log('Active orders fetched:', activeData);
+        
+        // Process active orders
+        const activeOrdersWithItems = await processOrderData(activeData || []);
+        setActiveOrders(activeOrdersWithItems);
+        setLoading(prev => ({ ...prev, activeOrders: false }));
       }
-
-      console.log('Active orders fetched:', activeData);
-
-      // Process pending orders
-      const pendingOrdersWithItems = await processOrderData(pendingData || []);
-      setOrders(pendingOrdersWithItems);
-      setLoading(prev => ({ ...prev, orders: false }));
-
-      // Process active orders
-      const activeOrdersWithItems = await processOrderData(activeData || []);
-      setActiveOrders(activeOrdersWithItems);
-      setLoading(prev => ({ ...prev, activeOrders: false }));
 
     } catch (err) {
       console.error('Unexpected error in fetchAllOrders:', err);
@@ -172,7 +172,7 @@ export function useOrdersData() {
 
     // Set up real-time subscription for all orders
     const ordersChannel = supabase
-      .channel('public:orders')
+      .channel('orders-channel')
       .on('postgres_changes', 
         { 
           event: '*', 
