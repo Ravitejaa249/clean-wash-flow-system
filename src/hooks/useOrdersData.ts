@@ -34,20 +34,10 @@ export function useOrdersData() {
             studentData = createFallbackStudent();
           }
 
-          // Fetch order items
+          // Fetch order items with correct query string
           const { data: items, error: itemsError } = await supabase
             .from('order_items')
-            .select(
-              id,
-              quantity,
-              price,
-              clothing_items (
-                id,
-                name,
-                price,
-                description
-              )
-            )
+            .select('id, quantity, price, clothing_items(id, name, price, description)')
             .eq('order_id', order.id);
 
           if (itemsError) {
@@ -87,18 +77,10 @@ export function useOrdersData() {
       console.log('Fetching all orders...');
       setLoading(prev => ({ ...prev, orders: true, activeOrders: true }));
       
-      // Fetch pending orders
+      // Fetch pending orders with updated select syntax
       const { data: pendingData, error: pendingError } = await supabase
         .from('orders')
-        .select(
-          *,
-          student:profiles(
-            full_name,
-            gender,
-            hostel,
-            floor
-          )
-        )
+        .select('*, student:profiles(full_name, gender, hostel, floor)')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
@@ -119,18 +101,10 @@ export function useOrdersData() {
         setLoading(prev => ({ ...prev, orders: false }));
       }
 
-      // Fetch active orders (accepted, processing)
+      // Fetch active orders (accepted, processing) with updated select syntax
       const { data: activeData, error: activeError } = await supabase
         .from('orders')
-        .select(
-          *,
-          student:profiles(
-            full_name,
-            gender,
-            hostel,
-            floor
-          )
-        )
+        .select('*, student:profiles(full_name, gender, hostel, floor)')
         .in('status', ['accepted', 'processing'])
         .order('created_at', { ascending: false });
 
