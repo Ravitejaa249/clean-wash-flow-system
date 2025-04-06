@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
@@ -193,8 +192,8 @@ const WorkerDashboard = () => {
 
     fetchAvailableOrders();
 
-    // Set up real-time subscription
-    const ordersSubscription = supabase
+    // Set up real-time subscription for pending orders
+    const pendingOrdersChannel = supabase
       .channel('public:orders:pending')
       .on('postgres_changes', 
         { 
@@ -210,7 +209,7 @@ const WorkerDashboard = () => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(ordersSubscription);
+      supabase.removeChannel(pendingOrdersChannel);
     };
   }, [user]);
 
@@ -311,24 +310,44 @@ const WorkerDashboard = () => {
 
     fetchMyOrders();
 
-    // Set up real-time subscription
-    const myOrdersSubscription = supabase
-      .channel('public:my_orders')
+    // Set up real-time subscription for worker's assigned orders
+    // Changed this to listen to ALL changes on orders where worker_id equals current user id
+    const myOrdersChannel = supabase
+      .channel('worker-orders')
       .on('postgres_changes', 
         { 
           event: '*', 
           schema: 'public', 
           table: 'orders',
-          filter: `worker_id=eq.${user?.id}` 
+          filter: `worker_id=eq.${user.id}` 
         }, 
-        () => {
+        (payload) => {
+          console.log('Worker order updated:', payload);
+          fetchMyOrders();
+        }
+      )
+      .subscribe();
+
+    // Also listen for any order that gets assigned to this worker
+    const newAssignmentsChannel = supabase
+      .channel('new-worker-assignments')
+      .on('postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `worker_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('New order assigned:', payload);
           fetchMyOrders();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(myOrdersSubscription);
+      supabase.removeChannel(myOrdersChannel);
+      supabase.removeChannel(newAssignmentsChannel);
     };
   }, [user]);
 
