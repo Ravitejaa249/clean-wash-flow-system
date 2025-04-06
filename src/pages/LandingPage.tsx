@@ -15,7 +15,7 @@ const LandingPage = () => {
           <Logo size="lg" />
           <div className="hidden sm:block">
             <a href="/login" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
-              Already have an account? fuck off
+              Already have an account? Login
             </a>
           </div>
         </div>
