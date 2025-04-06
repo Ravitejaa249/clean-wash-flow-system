@@ -14,7 +14,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto flex justify-center sm:justify-between items-center">
           <Logo size="lg" />
           <div className="hidden sm:block">
-            <a href="/LoginPage" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
+            <a href="/login" className="text-sm font-medium text-gray-700 hover:text-primary transition-colors">
               Already have an account? fuck off
             </a>
           </div>
