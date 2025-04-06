@@ -38,7 +38,7 @@ const WorkerDashboard = () => {
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Worker Dashboard</h1>
           <p className="text-gray-600 mb-6">
-            Welcome to your dashboard. Here you can manage laundry orders and update their status.
+            Welcum to your dashboard. Here you can manage laundry orders and update their status.
           </p>
           
           <Tabs defaultValue="active-orders" className="space-y-6">
