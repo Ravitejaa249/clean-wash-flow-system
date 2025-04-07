@@ -18,25 +18,22 @@ export function useOrdersData() {
     const ordersWithItems = await Promise.all(
       orderData.map(async (order) => {
         try {
-          // Fetch student profile with an explicit join
+          // Fetch student profile directly with a more reliable query
           const { data: studentData, error: studentError } = await supabase
             .from('profiles')
-            .select('id, full_name, gender, hostel, floor')
+            .select('full_name, gender, hostel, floor')
             .eq('id', order.student_id)
-            .limit(1)
-            .single();
-
-          console.log(`Query for student profile (order ${order.id})`, order.student_id, studentData, studentError);
+            .maybeSingle();
 
           // Create a properly structured student profile
-          const studentProfile = !studentData || studentError ? createFallbackStudent() : {
-            full_name: studentData.full_name,
+          const studentProfile = studentError || !studentData ? createFallbackStudent() : {
+            full_name: studentData.full_name || 'Unknown Student',
             gender: studentData.gender || 'unknown',
             hostel: studentData.hostel || 'N/A',
             floor: studentData.floor || 'N/A'
           };
 
-          console.log('Final student profile for order', order.id, ':', studentProfile);
+          console.log('Student profile for order', order.id, ':', studentProfile);
 
           // Fetch order items
           const { data: items, error: itemsError } = await supabase
