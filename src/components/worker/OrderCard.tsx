@@ -34,10 +34,17 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
 
   // Helper function to display hostel information safely
   const getStudentLocation = (student: OrderStudent | null) => {
-    if (student?.hostel && student?.floor) {
-      return `Block ${student.hostel}, Floor ${student.floor}`;
-    }
-    return 'N/A';
+    if (!student) return 'N/A';
+    
+    const hostelDisplay = student.hostel && student.hostel !== 'N/A' 
+      ? `Block ${student.hostel}` 
+      : 'Block N/A';
+      
+    const floorDisplay = student.floor && student.floor !== 'N/A' 
+      ? `Floor ${student.floor}` 
+      : 'Floor N/A';
+      
+    return `${hostelDisplay}, ${floorDisplay}`;
   };
 
   const formatDate = (dateString: string) => {

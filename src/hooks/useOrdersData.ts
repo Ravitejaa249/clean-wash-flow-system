@@ -18,19 +18,22 @@ export function useOrdersData() {
     const ordersWithItems = await Promise.all(
       orderData.map(async (order) => {
         try {
-          // Fetch student profile separately
+          // Fetch student profile directly with a more reliable query
           const { data: studentData, error: studentError } = await supabase
             .from('profiles')
-            .select('*')
+            .select('full_name, gender, hostel, floor')
             .eq('id', order.student_id)
-            .single();
+            .maybeSingle();
 
-          const studentProfile = studentError ? createFallbackStudent() : {
-            full_name: studentData.full_name,
-            gender: studentData.gender,
-            hostel: studentData.hostel,
-            floor: studentData.floor
+          // Create a properly structured student profile
+          const studentProfile = studentError || !studentData ? createFallbackStudent() : {
+            full_name: studentData.full_name || 'Unknown Student',
+            gender: studentData.gender || 'unknown',
+            hostel: studentData.hostel || 'N/A',
+            floor: studentData.floor || 'N/A'
           };
+
+          console.log('Student profile for order', order.id, ':', studentProfile);
 
           // Fetch order items
           const { data: items, error: itemsError } = await supabase
