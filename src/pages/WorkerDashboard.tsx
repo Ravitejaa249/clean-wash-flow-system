@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,9 @@ const WorkerDashboard = () => {
 
   // Initial loading effect and periodic refresh
   useEffect(() => {
+    // Force refresh on mount
+    refreshOrders();
+    
     // Set up a periodic refresh every 30 seconds as a fallback
     const intervalId = setInterval(() => {
       console.log('Performing periodic refresh of orders');
