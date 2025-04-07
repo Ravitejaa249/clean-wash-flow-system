@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { Order, isValidStudentData, createFallbackStudent } from '@/types/order.types';
 
 export function useOrdersData() {
@@ -70,6 +71,7 @@ export function useOrdersData() {
         .order('created_at', { ascending: false });
 
       if (pendingError) {
+        console.error('Error fetching pending orders:', pendingError);
         toast({
           title: 'Error',
           description: 'Failed to load pending orders.',
@@ -77,7 +79,8 @@ export function useOrdersData() {
         });
         setLoading(prev => ({ ...prev, orders: false }));
       } else {
-        const processed = await processOrderData(pendingData);
+        console.log('Pending orders fetched:', pendingData?.length || 0);
+        const processed = await processOrderData(pendingData || []);
         setOrders(processed);
         setLoading(prev => ({ ...prev, orders: false }));
       }
@@ -97,6 +100,7 @@ export function useOrdersData() {
         .order('created_at', { ascending: false });
 
       if (activeError) {
+        console.error('Error fetching active orders:', activeError);
         toast({
           title: 'Error',
           description: 'Failed to load active orders.',
@@ -104,7 +108,8 @@ export function useOrdersData() {
         });
         setLoading(prev => ({ ...prev, activeOrders: false }));
       } else {
-        const processed = await processOrderData(activeData);
+        console.log('Active orders fetched:', activeData?.length || 0);
+        const processed = await processOrderData(activeData || []);
         setActiveOrders(processed);
         setLoading(prev => ({ ...prev, activeOrders: false }));
       }
@@ -120,20 +125,27 @@ export function useOrdersData() {
   };
 
   useEffect(() => {
+    // Initial fetch
     fetchAllOrders();
 
+    // Set up real-time subscription for ALL order changes
     const ordersChannel = supabase
-      .channel('orders-channel')
+      .channel('orders-changes')
       .on('postgres_changes', {
-        event: '*',
+        event: '*',  // Listen for all events (insert, update, delete)
         schema: 'public',
         table: 'orders',
-      }, () => {
+      }, (payload) => {
+        console.log('Real-time order change detected:', payload);
+        // Immediately refetch all orders when any order changes
         fetchAllOrders();
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
+      // Clean up subscription on unmount
       supabase.removeChannel(ordersChannel);
     };
   }, []);

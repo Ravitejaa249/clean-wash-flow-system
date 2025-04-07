@@ -1,17 +1,32 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, Package } from 'lucide-react';
+import { Clock, Package, RefreshCw } from 'lucide-react';
 import Logo from '@/components/Logo';
 import OrderList from '@/components/worker/OrderList';
 import { useOrdersData } from '@/hooks/useOrdersData';
 import { Toaster } from '@/components/ui/toaster';
+import { toast } from '@/hooks/use-toast';
 
 const WorkerDashboard = () => {
   const { signOut, profile } = useAuth();
   const { orders, activeOrders, loading, refreshOrders } = useOrdersData();
+
+  const handleRefresh = () => {
+    toast({
+      title: 'Refreshing orders',
+      description: 'Getting the latest orders...'
+    });
+    refreshOrders();
+  };
+
+  // Log order counts to help with debugging
+  useEffect(() => {
+    console.log('Worker Dashboard - Orders count:', orders?.length || 0);
+    console.log('Worker Dashboard - Active orders count:', activeOrders?.length || 0);
+  }, [orders, activeOrders]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -36,10 +51,24 @@ const WorkerDashboard = () => {
 
       <main className="flex-1 p-4">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Worker Dashboard</h1>
-          <p className="text-gray-600 mb-6">
-            Welcome to your dashboard. Here you can manage laundry orders and update their status.
-          </p>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Worker Dashboard</h1>
+              <p className="text-gray-600">
+                Welcome to your dashboard. Here you can manage laundry orders and update their status.
+              </p>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleRefresh} 
+              className="flex items-center gap-1"
+              disabled={loading.orders || loading.activeOrders}
+            >
+              <RefreshCw className={`h-4 w-4 ${(loading.orders || loading.activeOrders) ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
           
           <Tabs defaultValue="active-orders" className="space-y-6">
             <TabsList className="grid w-full max-w-md grid-cols-2">
