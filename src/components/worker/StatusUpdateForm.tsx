@@ -61,7 +61,9 @@ const StatusUpdateForm: React.FC<StatusUpdateFormProps> = ({
       
       // Add worker_id if accepting the order
       if (selectedStatus === 'accepted') {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        
         if (user?.id) {
           updateData.worker_id = user.id;
         } else {
@@ -81,13 +83,13 @@ const StatusUpdateForm: React.FC<StatusUpdateFormProps> = ({
 
       console.log('Updating order:', order.id, 'with data:', updateData);
 
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('orders')
         .update(updateData)
         .eq('id', order.id);
 
-      if (error) {
-        throw error;
+      if (updateError) {
+        throw updateError;
       }
 
       toast({

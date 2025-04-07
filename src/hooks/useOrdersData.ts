@@ -17,12 +17,23 @@ export function useOrdersData() {
 
     const ordersWithItems = await Promise.all(
       orderData.map(async (order) => {
-        let studentData = isValidStudentData(order.student)
-          ? order.student
-          : createFallbackStudent();
-
         try {
-          const { data: items, error } = await supabase
+          // Fetch student profile separately
+          const { data: studentData, error: studentError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', order.student_id)
+            .single();
+
+          const studentProfile = studentError ? createFallbackStudent() : {
+            full_name: studentData.full_name,
+            gender: studentData.gender,
+            hostel: studentData.hostel,
+            floor: studentData.floor
+          };
+
+          // Fetch order items
+          const { data: items, error: itemsError } = await supabase
             .from('order_items')
             .select(`
               id,
@@ -37,19 +48,19 @@ export function useOrdersData() {
             `)
             .eq('order_id', order.id);
 
-          if (error) {
-            console.error('Failed to fetch order items:', error);
-            return { ...order, items: [], student: studentData };
+          if (itemsError) {
+            console.error('Failed to fetch order items:', itemsError);
+            return { ...order, items: [], student: studentProfile };
           }
 
           return {
             ...order,
             items: items || [],
-            student: studentData
+            student: studentProfile
           } as Order;
         } catch (err) {
           console.error('Error processing order data:', err);
-          return { ...order, items: [], student: studentData } as Order;
+          return { ...order, items: [], student: createFallbackStudent() } as Order;
         }
       })
     );
@@ -64,15 +75,7 @@ export function useOrdersData() {
       // Fetch pending orders (new orders)
       const { data: pendingData, error: pendingError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          student:profiles(
-            full_name,
-            gender,
-            hostel,
-            floor
-          )
-        `)
+        .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
@@ -93,15 +96,7 @@ export function useOrdersData() {
       // Fetch active orders (accepted or processing)
       const { data: activeData, error: activeError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          student:profiles(
-            full_name,
-            gender,
-            hostel,
-            floor
-          )
-        `)
+        .select('*')
         .in('status', ['accepted', 'processing'])
         .order('created_at', { ascending: false });
 

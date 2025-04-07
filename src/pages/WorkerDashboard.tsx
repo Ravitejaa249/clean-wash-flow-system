@@ -22,6 +22,17 @@ const WorkerDashboard = () => {
     refreshOrders();
   };
 
+  // Initial loading effect and periodic refresh
+  useEffect(() => {
+    // Set up a periodic refresh every 30 seconds as a fallback
+    const intervalId = setInterval(() => {
+      console.log('Performing periodic refresh of orders');
+      refreshOrders();
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [refreshOrders]);
+
   // Log order counts to help with debugging
   useEffect(() => {
     console.log('Worker Dashboard - Orders count:', orders?.length || 0);
