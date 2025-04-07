@@ -21,31 +21,36 @@ export function useOrdersData() {
           ? order.student
           : createFallbackStudent();
 
-        const { data: items, error } = await supabase
-          .from('order_items')
-          .select(`
-            id,
-            quantity,
-            price,
-            clothing_items (
+        try {
+          const { data: items, error } = await supabase
+            .from('order_items')
+            .select(`
               id,
-              name,
+              quantity,
               price,
-              description
-            )
-          `)
-          .eq('order_id', order.id);
+              clothing_items (
+                id,
+                name,
+                price,
+                description
+              )
+            `)
+            .eq('order_id', order.id);
 
-        if (error) {
-          console.error('Failed to fetch order items:', error);
-          return { ...order, items: null, student: studentData };
+          if (error) {
+            console.error('Failed to fetch order items:', error);
+            return { ...order, items: [], student: studentData };
+          }
+
+          return {
+            ...order,
+            items: items || [],
+            student: studentData
+          } as Order;
+        } catch (err) {
+          console.error('Error processing order data:', err);
+          return { ...order, items: [], student: studentData } as Order;
         }
-
-        return {
-          ...order,
-          items,
-          student: studentData
-        } as Order;
       })
     );
 
@@ -56,6 +61,7 @@ export function useOrdersData() {
     try {
       setLoading({ orders: true, activeOrders: true });
 
+      // Fetch pending orders (new orders)
       const { data: pendingData, error: pendingError } = await supabase
         .from('orders')
         .select(`
@@ -77,14 +83,14 @@ export function useOrdersData() {
           description: 'Failed to load pending orders.',
           variant: 'destructive',
         });
-        setLoading(prev => ({ ...prev, orders: false }));
       } else {
         console.log('Pending orders fetched:', pendingData?.length || 0);
         const processed = await processOrderData(pendingData || []);
         setOrders(processed);
-        setLoading(prev => ({ ...prev, orders: false }));
       }
+      setLoading(prev => ({ ...prev, orders: false }));
 
+      // Fetch active orders (accepted or processing)
       const { data: activeData, error: activeError } = await supabase
         .from('orders')
         .select(`
@@ -106,13 +112,13 @@ export function useOrdersData() {
           description: 'Failed to load active orders.',
           variant: 'destructive',
         });
-        setLoading(prev => ({ ...prev, activeOrders: false }));
       } else {
         console.log('Active orders fetched:', activeData?.length || 0);
         const processed = await processOrderData(activeData || []);
         setActiveOrders(processed);
-        setLoading(prev => ({ ...prev, activeOrders: false }));
       }
+      setLoading(prev => ({ ...prev, activeOrders: false }));
+      
     } catch (err) {
       console.error('Unexpected fetch error:', err);
       toast({
@@ -142,6 +148,16 @@ export function useOrdersData() {
       })
       .subscribe((status) => {
         console.log('Realtime subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to orders changes');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to orders changes');
+          toast({
+            title: 'Connection Error',
+            description: 'Failed to establish real-time connection for order updates.',
+            variant: 'destructive',
+          });
+        }
       });
 
     return () => {

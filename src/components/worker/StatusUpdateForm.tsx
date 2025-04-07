@@ -28,6 +28,20 @@ const StatusUpdateForm: React.FC<StatusUpdateFormProps> = ({
   const [deliveryNotes, setDeliveryNotes] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
+  // Get available status options based on current order status
+  const getAvailableStatusOptions = () => {
+    switch (order.status) {
+      case 'pending':
+        return statusOptions.filter(option => ['accepted', 'cancelled'].includes(option.value));
+      case 'accepted':
+        return statusOptions.filter(option => ['processing', 'cancelled'].includes(option.value));
+      case 'processing':
+        return statusOptions.filter(option => ['completed', 'cancelled'].includes(option.value));
+      default:
+        return statusOptions.filter(option => option.value !== order.status);
+    }
+  };
+
   const updateOrderStatus = async () => {
     if (!selectedStatus) {
       toast({
@@ -50,6 +64,8 @@ const StatusUpdateForm: React.FC<StatusUpdateFormProps> = ({
         const { data: { user } } = await supabase.auth.getUser();
         if (user?.id) {
           updateData.worker_id = user.id;
+        } else {
+          throw new Error('Unable to get current user');
         }
       }
       
@@ -108,11 +124,10 @@ const StatusUpdateForm: React.FC<StatusUpdateFormProps> = ({
             <SelectValue placeholder="Select new status" />
           </SelectTrigger>
           <SelectContent>
-            {statusOptions.map(option => (
+            {getAvailableStatusOptions().map(option => (
               <SelectItem 
                 key={option.value} 
                 value={option.value}
-                disabled={option.value === order.status}
               >
                 {option.label}
               </SelectItem>
