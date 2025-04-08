@@ -29,19 +29,12 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
 
   // Helper function to display student information safely
   const getStudentName = (student: OrderStudent | null) => {
-    if (!student) return 'Unknown Student';
-    console.log('Displaying student name:', student.full_name);
-    return student.full_name || 'Unknown Student';
+    return student?.full_name || 'Unknown Student';
   };
 
   // Helper function to display hostel information safely
   const getStudentLocation = (student: OrderStudent | null) => {
-    if (!student) {
-      console.log('No student data available for location');
-      return 'N/A';
-    }
-    
-    console.log('Student location data:', { hostel: student.hostel, floor: student.floor });
+    if (!student) return 'N/A';
     
     const hostelDisplay = student.hostel && student.hostel !== 'N/A' 
       ? `Block ${student.hostel}` 
@@ -96,9 +89,6 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
         return <AlertCircle className="h-4 w-4" />;
     }
   };
-
-  // Log the full order object to debug student information
-  console.log('Rendering order with student info:', order.id, order.student);
 
   return (
     <Card className="overflow-hidden">

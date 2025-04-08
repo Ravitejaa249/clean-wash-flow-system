@@ -9,7 +9,6 @@ import OrderList from '@/components/worker/OrderList';
 import { useOrdersData } from '@/hooks/useOrdersData';
 import { Toaster } from '@/components/ui/toaster';
 import { toast } from '@/hooks/use-toast';
-import LoadingScreen from '@/components/LoadingScreen';
 
 const WorkerDashboard = () => {
   const { signOut, profile } = useAuth();
@@ -25,15 +24,11 @@ const WorkerDashboard = () => {
 
   // Initial loading effect and periodic refresh
   useEffect(() => {
-    // Perform an immediate refresh when component mounts
-    console.log('Worker Dashboard mounted - refreshing orders immediately');
-    refreshOrders();
-    
-    // Set up a more frequent periodic refresh every 10 seconds
+    // Set up a periodic refresh every 30 seconds as a fallback
     const intervalId = setInterval(() => {
       console.log('Performing periodic refresh of orders');
       refreshOrders();
-    }, 10000); // Reduced to 10 seconds for more frequent updates
+    }, 30000);
 
     return () => clearInterval(intervalId);
   }, [refreshOrders]);
@@ -42,20 +37,7 @@ const WorkerDashboard = () => {
   useEffect(() => {
     console.log('Worker Dashboard - Orders count:', orders?.length || 0);
     console.log('Worker Dashboard - Active orders count:', activeOrders?.length || 0);
-    
-    // Log student information from orders for debugging
-    if (orders?.length) {
-      console.log('First pending order student info:', orders[0]?.student);
-    }
-    if (activeOrders?.length) {
-      console.log('First active order student info:', activeOrders[0]?.student);
-    }
   }, [orders, activeOrders]);
-
-  // Show loading screen during initial load
-  if (loading.orders && loading.activeOrders) {
-    return <LoadingScreen />;
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

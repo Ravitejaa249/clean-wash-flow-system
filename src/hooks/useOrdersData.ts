@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Order, isValidStudentData, createFallbackStudent } from '@/types/order.types';
@@ -18,32 +18,22 @@ export function useOrdersData() {
     const ordersWithItems = await Promise.all(
       orderData.map(async (order) => {
         try {
-          // Fetch student profile with correct fields
-          console.log(`Fetching profile for student_id: ${order.student_id}`);
+          // Fetch student profile directly with a more reliable query
           const { data: studentData, error: studentError } = await supabase
             .from('profiles')
             .select('full_name, gender, hostel, floor')
             .eq('id', order.student_id)
             .maybeSingle();
 
-          if (studentError) {
-            console.error('Error fetching student profile:', studentError);
-            console.log('Will use fallback student profile');
-          } else {
-            console.log('Student data fetched successfully:', studentData);
-          }
-
           // Create a properly structured student profile
-          const studentProfile = studentError || !studentData 
-            ? createFallbackStudent() 
-            : {
-                full_name: studentData.full_name || 'Unknown Student',
-                gender: studentData.gender || 'unknown',
-                hostel: studentData.hostel || 'N/A',
-                floor: studentData.floor || 'N/A'
-              };
+          const studentProfile = studentError || !studentData ? createFallbackStudent() : {
+            full_name: studentData.full_name || 'Unknown Student',
+            gender: studentData.gender || 'unknown',
+            hostel: studentData.hostel || 'N/A',
+            floor: studentData.floor || 'N/A'
+          };
 
-          console.log('Final student profile for order', order.id, ':', studentProfile);
+          console.log('Student profile for order', order.id, ':', studentProfile);
 
           // Fetch order items
           const { data: items, error: itemsError } = await supabase
@@ -81,7 +71,7 @@ export function useOrdersData() {
     return ordersWithItems;
   };
 
-  const fetchAllOrders = useCallback(async () => {
+  const fetchAllOrders = async () => {
     try {
       setLoading({ orders: true, activeOrders: true });
 
@@ -136,14 +126,14 @@ export function useOrdersData() {
       });
       setLoading({ orders: false, activeOrders: false });
     }
-  }, []);
+  };
 
   useEffect(() => {
     // Initial fetch
     fetchAllOrders();
 
-    // Set up real-time subscription with improved configuration
-    const channel = supabase
+    // Set up real-time subscription for ALL order changes
+    const ordersChannel = supabase
       .channel('orders-changes')
       .on('postgres_changes', {
         event: '*',  // Listen for all events (insert, update, delete)
@@ -154,15 +144,25 @@ export function useOrdersData() {
         // Immediately refetch all orders when any order changes
         fetchAllOrders();
       })
-      .subscribe();
-
-    console.log('Realtime subscription initialized');
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to orders changes');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to orders changes');
+          toast({
+            title: 'Connection Error',
+            description: 'Failed to establish real-time connection for order updates.',
+            variant: 'destructive',
+          });
+        }
+      });
 
     return () => {
       // Clean up subscription on unmount
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ordersChannel);
     };
-  }, [fetchAllOrders]);
+  }, []);
 
   return {
     orders,
