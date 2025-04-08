@@ -24,20 +24,24 @@ const WorkerDashboard = () => {
 
   // Initial loading effect and periodic refresh
   useEffect(() => {
-    // Set up a periodic refresh every 30 seconds as a fallback
+    // Force refresh on component mount
+    refreshOrders();
+    
+    // Set up a periodic refresh every 20 seconds
     const intervalId = setInterval(() => {
       console.log('Performing periodic refresh of orders');
       refreshOrders();
-    }, 30000);
+    }, 20000);
 
     return () => clearInterval(intervalId);
   }, [refreshOrders]);
 
-  // Log order counts to help with debugging
+  // Log order counts and user role to help with debugging
   useEffect(() => {
+    console.log('Worker Dashboard - Worker profile:', profile);
     console.log('Worker Dashboard - Orders count:', orders?.length || 0);
     console.log('Worker Dashboard - Active orders count:', activeOrders?.length || 0);
-  }, [orders, activeOrders]);
+  }, [orders, activeOrders, profile]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

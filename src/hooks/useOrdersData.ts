@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Order, isValidStudentData, createFallbackStudent } from '@/types/order.types';
@@ -12,28 +12,35 @@ export function useOrdersData() {
     activeOrders: true,
   });
 
-  const processOrderData = async (orderData: any[]) => {
+  const processOrderData = useCallback(async (orderData: any[]) => {
     if (!orderData?.length) return [];
 
     const ordersWithItems = await Promise.all(
       orderData.map(async (order) => {
         try {
-          // Fetch student profile directly with a more reliable query
+          // Log the student ID being fetched to help with debugging
+          console.log('Fetching profile for student_id:', order.student_id);
+          
+          // Fetch student profile with a more reliable query
           const { data: studentData, error: studentError } = await supabase
             .from('profiles')
             .select('full_name, gender, hostel, floor')
             .eq('id', order.student_id)
             .maybeSingle();
 
+          if (studentError) {
+            console.error('Error fetching student profile:', studentError);
+          }
+
+          console.log('Student data fetched:', studentData);
+
           // Create a properly structured student profile
-          const studentProfile = studentError || !studentData ? createFallbackStudent() : {
+          const studentProfile = !studentData ? createFallbackStudent() : {
             full_name: studentData.full_name || 'Unknown Student',
             gender: studentData.gender || 'unknown',
             hostel: studentData.hostel || 'N/A',
             floor: studentData.floor || 'N/A'
           };
-
-          console.log('Student profile for order', order.id, ':', studentProfile);
 
           // Fetch order items
           const { data: items, error: itemsError } = await supabase
@@ -69,9 +76,9 @@ export function useOrdersData() {
     );
 
     return ordersWithItems;
-  };
+  }, []);
 
-  const fetchAllOrders = async () => {
+  const fetchAllOrders = useCallback(async () => {
     try {
       setLoading({ orders: true, activeOrders: true });
 
@@ -126,7 +133,7 @@ export function useOrdersData() {
       });
       setLoading({ orders: false, activeOrders: false });
     }
-  };
+  }, [processOrderData]);
 
   useEffect(() => {
     // Initial fetch
@@ -162,7 +169,7 @@ export function useOrdersData() {
       // Clean up subscription on unmount
       supabase.removeChannel(ordersChannel);
     };
-  }, []);
+  }, [fetchAllOrders]);
 
   return {
     orders,
