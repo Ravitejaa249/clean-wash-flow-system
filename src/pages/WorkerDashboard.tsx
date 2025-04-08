@@ -24,11 +24,15 @@ const WorkerDashboard = () => {
 
   // Initial loading effect and periodic refresh
   useEffect(() => {
-    // Set up a periodic refresh every 30 seconds as a fallback
+    // Perform an immediate refresh when component mounts
+    console.log('Worker Dashboard mounted - refreshing orders immediately');
+    refreshOrders();
+    
+    // Set up a more frequent periodic refresh every 15 seconds
     const intervalId = setInterval(() => {
       console.log('Performing periodic refresh of orders');
       refreshOrders();
-    }, 30000);
+    }, 15000); // Reduced to 15 seconds for more frequent updates
 
     return () => clearInterval(intervalId);
   }, [refreshOrders]);
@@ -37,6 +41,14 @@ const WorkerDashboard = () => {
   useEffect(() => {
     console.log('Worker Dashboard - Orders count:', orders?.length || 0);
     console.log('Worker Dashboard - Active orders count:', activeOrders?.length || 0);
+    
+    // Log student information from orders for debugging
+    if (orders?.length) {
+      console.log('First pending order student info:', orders[0]?.student);
+    }
+    if (activeOrders?.length) {
+      console.log('First active order student info:', activeOrders[0]?.student);
+    }
   }, [orders, activeOrders]);
 
   return (
