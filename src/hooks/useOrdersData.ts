@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Order, isValidStudentData, createFallbackStudent } from '@/types/order.types';
@@ -24,7 +24,7 @@ export function useOrdersData() {
             .from('profiles')
             .select('full_name, gender, hostel, floor')
             .eq('id', order.student_id)
-            .single();
+            .maybeSingle();
 
           if (studentError) {
             console.error('Error fetching student profile:', studentError);
@@ -81,7 +81,7 @@ export function useOrdersData() {
     return ordersWithItems;
   };
 
-  const fetchAllOrders = async () => {
+  const fetchAllOrders = useCallback(async () => {
     try {
       setLoading({ orders: true, activeOrders: true });
 
@@ -136,14 +136,14 @@ export function useOrdersData() {
       });
       setLoading({ orders: false, activeOrders: false });
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Initial fetch
     fetchAllOrders();
 
-    // Set up real-time subscription for ALL order changes
-    const ordersChannel = supabase
+    // Set up real-time subscription with improved configuration
+    const channel = supabase
       .channel('orders-changes')
       .on('postgres_changes', {
         event: '*',  // Listen for all events (insert, update, delete)
@@ -154,25 +154,15 @@ export function useOrdersData() {
         // Immediately refetch all orders when any order changes
         fetchAllOrders();
       })
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to orders changes');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Failed to subscribe to orders changes');
-          toast({
-            title: 'Connection Error',
-            description: 'Failed to establish real-time connection for order updates.',
-            variant: 'destructive',
-          });
-        }
-      });
+      .subscribe();
+
+    console.log('Realtime subscription initialized');
 
     return () => {
       // Clean up subscription on unmount
-      supabase.removeChannel(ordersChannel);
+      supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchAllOrders]);
 
   return {
     orders,

@@ -9,6 +9,7 @@ import OrderList from '@/components/worker/OrderList';
 import { useOrdersData } from '@/hooks/useOrdersData';
 import { Toaster } from '@/components/ui/toaster';
 import { toast } from '@/hooks/use-toast';
+import LoadingScreen from '@/components/LoadingScreen';
 
 const WorkerDashboard = () => {
   const { signOut, profile } = useAuth();
@@ -28,11 +29,11 @@ const WorkerDashboard = () => {
     console.log('Worker Dashboard mounted - refreshing orders immediately');
     refreshOrders();
     
-    // Set up a more frequent periodic refresh every 15 seconds
+    // Set up a more frequent periodic refresh every 10 seconds
     const intervalId = setInterval(() => {
       console.log('Performing periodic refresh of orders');
       refreshOrders();
-    }, 15000); // Reduced to 15 seconds for more frequent updates
+    }, 10000); // Reduced to 10 seconds for more frequent updates
 
     return () => clearInterval(intervalId);
   }, [refreshOrders]);
@@ -50,6 +51,11 @@ const WorkerDashboard = () => {
       console.log('First active order student info:', activeOrders[0]?.student);
     }
   }, [orders, activeOrders]);
+
+  // Show loading screen during initial load
+  if (loading.orders && loading.activeOrders) {
+    return <LoadingScreen />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
