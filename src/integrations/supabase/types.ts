@@ -123,6 +123,8 @@ export type Database = {
           id: string
           registration_number: string | null
           role: string
+          total_washes: number
+          washes_left: number
           worker_id: string | null
         }
         Insert: {
@@ -136,6 +138,8 @@ export type Database = {
           id: string
           registration_number?: string | null
           role: string
+          total_washes?: number
+          washes_left?: number
           worker_id?: string | null
         }
         Update: {
@@ -149,6 +153,8 @@ export type Database = {
           id?: string
           registration_number?: string | null
           role?: string
+          total_washes?: number
+          washes_left?: number
           worker_id?: string | null
         }
         Relationships: []

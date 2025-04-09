@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
@@ -17,11 +18,19 @@ import {
   Calendar, 
   Check, 
   ChevronDown, 
-  ChevronUp 
+  ChevronUp,
+  User
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Database } from '@/integrations/supabase/types';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type OrderStatus = Database['public']['Enums']['order_status'];
 
@@ -29,7 +38,6 @@ interface ClothingItem {
   id: string;
   name: string;
   gender: string;
-  price: number;
   description: string | null;
   quantity?: number;
 }
@@ -53,6 +61,7 @@ const StudentDashboard = () => {
   const [notes, setNotes] = useState('');
   const [pickupDate, setPickupDate] = useState(format(new Date(), 'yyyy-MM-dd\'T\'HH:mm'));
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [loading, setLoading] = useState({
     clothingItems: true,
     orders: true,
@@ -119,7 +128,6 @@ const StudentDashboard = () => {
               clothing_items (
                 id,
                 name,
-                price,
                 description
               )
             `)
@@ -218,6 +226,16 @@ const StudentDashboard = () => {
       return;
     }
 
+    // Check if the student has washes left
+    if (profile?.washes_left <= 0) {
+      toast({
+        title: 'No washes left',
+        description: 'You have used all your available washes for this period',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(prev => ({ ...prev, placeOrder: true }));
 
     try {
@@ -247,7 +265,7 @@ const StudentDashboard = () => {
         order_id: orderData.id,
         clothing_item_id: item.id,
         quantity: item.quantity || 1,
-        price: item.price * (item.quantity || 1),
+        price: 0, // We don't use price anymore
       }));
 
       const { error: itemsError } = await supabase
@@ -341,6 +359,15 @@ const StudentDashboard = () => {
             <span className="text-sm font-medium text-gray-700 mr-2">
               {profile?.full_name}
             </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-sm"
+              onClick={() => setShowProfileDialog(true)}
+            >
+              <User className="h-4 w-4 mr-1" />
+              Profile
+            </Button>
             <Button
               variant="outline"
               onClick={() => signOut()}
@@ -525,12 +552,17 @@ const StudentDashboard = () => {
                               <p className="font-medium">Total Items:</p>
                               <p className="font-bold">{calculateTotal()}</p>
                             </div>
+                            
+                            <div className="flex justify-between items-center py-2">
+                              <p className="font-medium">Washes Left:</p>
+                              <p className="font-bold">{profile?.washes_left || 0} / {profile?.total_washes || 40}</p>
+                            </div>
                           </div>
                           
                           <Button 
                             className="w-full" 
                             onClick={handlePlaceOrder} 
-                            disabled={loading.placeOrder || cart.length === 0}
+                            disabled={loading.placeOrder || cart.length === 0 || (profile?.washes_left || 0) <= 0}
                           >
                             {loading.placeOrder ? (
                               <>
@@ -544,6 +576,12 @@ const StudentDashboard = () => {
                               </>
                             )}
                           </Button>
+                          
+                          {(profile?.washes_left || 0) <= 0 && (
+                            <p className="text-sm text-red-500 text-center mt-2">
+                              You have no washes left for this period
+                            </p>
+                          )}
                         </div>
                       )}
                     </CardContent>
@@ -663,6 +701,98 @@ const StudentDashboard = () => {
           </Tabs>
         </div>
       </main>
+
+      {/* Profile Dialog */}
+      <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Student Profile</DialogTitle>
+            <DialogDescription>
+              Your personal information and service details
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Personal Information</h3>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-sm text-gray-500">Full Name</p>
+                    <p className="font-medium">{profile?.full_name || 'Not available'}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-500">Email</p>
+                    <p className="font-medium">{profile?.email || 'Not available'}</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-gray-500">Gender</p>
+                    <p className="font-medium capitalize">{profile?.gender || 'Not available'}</p>
+                  </div>
+                  
+                  {profile?.registration_number && (
+                    <div>
+                      <p className="text-sm text-gray-500">Registration Number</p>
+                      <p className="font-medium">{profile.registration_number}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Residence Information</h3>
+                <div className="space-y-2">
+                  {profile?.hostel && (
+                    <div>
+                      <p className="text-sm text-gray-500">Hostel</p>
+                      <p className="font-medium">{profile.hostel}</p>
+                    </div>
+                  )}
+                  
+                  {profile?.floor && (
+                    <div>
+                      <p className="text-sm text-gray-500">Floor</p>
+                      <p className="font-medium">{profile.floor}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-blue-500 mb-1">Laundry Service</h3>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-sm text-blue-500">Washes Left</p>
+                    <div className="flex items-center mt-1">
+                      <div className="w-full bg-blue-200 rounded-full h-2.5">
+                        <div 
+                          className="bg-blue-500 h-2.5 rounded-full" 
+                          style={{ 
+                            width: `${(profile?.washes_left || 0) / (profile?.total_washes || 40) * 100}%` 
+                          }}
+                        ></div>
+                      </div>
+                      <span className="ml-2 font-medium">
+                        {profile?.washes_left || 0} / {profile?.total_washes || 40}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-blue-500">
+                      {(profile?.washes_left || 0) > 0 
+                        ? 'You have washes available' 
+                        : 'You have used all available washes'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <footer className="py-6 px-4 bg-white border-t border-gray-200">
         <div className="max-w-7xl mx-auto">
