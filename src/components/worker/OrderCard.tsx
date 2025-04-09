@@ -122,7 +122,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
                   Pickup: {formatDate(order.pickup_date)}
                 </p>
               </div>
-              <p className="text-sm font-semibold mt-2">₹{order.total_price.toFixed(2)}</p>
+              <p className="text-sm font-semibold mt-2">Order Total</p>
             </div>
             <Button 
               variant="ghost" 
@@ -151,7 +151,6 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
                         <span className="text-gray-600">{item.quantity}x</span>
                         <span className="ml-2">{item.clothing_items.name}</span>
                       </div>
-                      <span>₹{item.price.toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
