@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
@@ -196,7 +195,7 @@ const StudentDashboard = () => {
 
   const calculateTotal = () => {
     return cart.reduce((total, item) => {
-      return total + (item.price * (item.quantity || 1));
+      return total + (item.quantity || 1);
     }, 0);
   };
 
@@ -228,7 +227,7 @@ const StudentDashboard = () => {
         .insert({
           student_id: user.id,
           status: 'pending',
-          total_price: calculateTotal(),
+          total_price: calculateTotal(), // Just the count now
           pickup_date: new Date(pickupDate).toISOString(),
           notes: notes.trim() || null,
         })
@@ -398,7 +397,6 @@ const StudentDashboard = () => {
                                   <div>
                                     <h3 className="font-medium">{item.name}</h3>
                                     <p className="text-sm text-gray-500">{item.description}</p>
-                                    <p className="text-sm font-semibold mt-1">₹{item.price.toFixed(2)}</p>
                                   </div>
                                   <Button 
                                     variant="outline" 
@@ -476,7 +474,6 @@ const StudentDashboard = () => {
                               <div key={item.id} className="flex justify-between items-center py-2 border-b">
                                 <div>
                                   <p className="font-medium">{item.name}</p>
-                                  <p className="text-sm text-gray-500">₹{item.price} per item</p>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <div className="flex items-center space-x-1">
@@ -525,8 +522,8 @@ const StudentDashboard = () => {
                           
                           <div className="pt-2 border-t border-dashed">
                             <div className="flex justify-between items-center py-2">
-                              <p className="font-medium">Total Amount:</p>
-                              <p className="font-bold">₹{calculateTotal().toFixed(2)}</p>
+                              <p className="font-medium">Total Items:</p>
+                              <p className="font-bold">{calculateTotal()}</p>
                             </div>
                           </div>
                           
@@ -603,7 +600,6 @@ const StudentDashboard = () => {
                                     Delivery: {formatDate(order.delivery_date)}
                                   </p>
                                 )}
-                                <p className="text-sm font-semibold mt-1">₹{order.total_price.toFixed(2)}</p>
                               </div>
                               <Button 
                                 variant="ghost" 
@@ -629,7 +625,6 @@ const StudentDashboard = () => {
                                         <span className="text-gray-600">{item.quantity}x</span>
                                         <span className="ml-2">{item.clothing_items.name}</span>
                                       </div>
-                                      <span>₹{item.price.toFixed(2)}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -648,7 +643,7 @@ const StudentDashboard = () => {
                                       size="sm"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        // Cancel order logic here
+                                        cancelOrder(order.id);
                                       }}
                                     >
                                       Cancel Order
