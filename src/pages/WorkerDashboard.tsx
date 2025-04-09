@@ -36,11 +36,18 @@ const WorkerDashboard = () => {
     return () => clearInterval(intervalId);
   }, [refreshOrders]);
 
-  // Log order counts and user role to help with debugging
+  // Log more details about student profiles for debugging
   useEffect(() => {
     console.log('Worker Dashboard - Worker profile:', profile);
     console.log('Worker Dashboard - Orders count:', orders?.length || 0);
     console.log('Worker Dashboard - Active orders count:', activeOrders?.length || 0);
+    
+    // Log individual student data for debugging
+    if (orders && orders.length > 0) {
+      orders.forEach(order => {
+        console.log(`Order ${order.id.slice(0, 8)} - Student:`, order.student);
+      });
+    }
   }, [orders, activeOrders, profile]);
 
   return (

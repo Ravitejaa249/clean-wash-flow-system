@@ -29,7 +29,8 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
 
   // Helper function to display student information safely
   const getStudentName = (student: OrderStudent | null) => {
-    return student?.full_name || 'Unknown Student';
+    if (!student) return 'Unknown Student';
+    return student.full_name || 'Unknown Student';
   };
 
   // Helper function to display hostel information safely
@@ -122,7 +123,6 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
                   Pickup: {formatDate(order.pickup_date)}
                 </p>
               </div>
-              <p className="text-sm font-semibold mt-2">Order Total</p>
             </div>
             <Button 
               variant="ghost" 

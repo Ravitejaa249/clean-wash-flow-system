@@ -18,29 +18,40 @@ export function useOrdersData() {
     const ordersWithItems = await Promise.all(
       orderData.map(async (order) => {
         try {
-          // Log the student ID being fetched to help with debugging
+          // Fetch student profile with an improved query
           console.log('Fetching profile for student_id:', order.student_id);
           
-          // Fetch student profile with a more reliable query
+          // Use a more explicit query to fetch the student profile
           const { data: studentData, error: studentError } = await supabase
             .from('profiles')
-            .select('full_name, gender, hostel, floor')
+            .select('id, full_name, gender, hostel, floor, washes_left, total_washes')
             .eq('id', order.student_id)
-            .maybeSingle();
+            .single();
 
           if (studentError) {
             console.error('Error fetching student profile:', studentError);
+            // Try a second approach if the first one fails
+            const { data: studentDataRetry, error: studentErrorRetry } = await supabase
+              .rpc('get_profile_by_id', { profile_id: order.student_id });
+              
+            if (studentErrorRetry) {
+              console.error('Also failed with RPC approach:', studentErrorRetry);
+            } else if (studentDataRetry) {
+              console.log('Student data fetched via RPC:', studentDataRetry);
+            }
           }
 
           console.log('Student data fetched:', studentData);
 
           // Create a properly structured student profile
-          const studentProfile = !studentData ? createFallbackStudent() : {
+          const studentProfile = studentData ? {
             full_name: studentData.full_name || 'Unknown Student',
             gender: studentData.gender || 'unknown',
             hostel: studentData.hostel || 'N/A',
-            floor: studentData.floor || 'N/A'
-          };
+            floor: studentData.floor || 'N/A',
+            washes_left: studentData.washes_left || 0,
+            total_washes: studentData.total_washes || 40
+          } : createFallbackStudent();
 
           // Fetch order items
           const { data: items, error: itemsError } = await supabase
