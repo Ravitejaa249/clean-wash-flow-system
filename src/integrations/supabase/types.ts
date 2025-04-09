@@ -76,6 +76,7 @@ export type Database = {
         Row: {
           created_at: string
           delivery_date: string | null
+          floor: string | null
           id: string
           notes: string | null
           pickup_date: string
@@ -88,6 +89,7 @@ export type Database = {
         Insert: {
           created_at?: string
           delivery_date?: string | null
+          floor?: string | null
           id?: string
           notes?: string | null
           pickup_date?: string
@@ -100,6 +102,7 @@ export type Database = {
         Update: {
           created_at?: string
           delivery_date?: string | null
+          floor?: string | null
           id?: string
           notes?: string | null
           pickup_date?: string

@@ -1,4 +1,3 @@
-
 import { Database } from '@/integrations/supabase/types';
 
 export interface OrderStudent {
@@ -24,6 +23,7 @@ export interface Order {
   worker_id: string | null;
   student: OrderStudent | null;
   items: any[] | null;
+  floor?: string | null;
 }
 
 export interface OrderItem {

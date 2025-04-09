@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +16,8 @@ import {
   CalendarClock,
   ChevronDown,
   ChevronUp,
-  Building
+  Building,
+  Stairs
 } from 'lucide-react';
 
 interface OrderCardProps {
@@ -27,13 +27,11 @@ interface OrderCardProps {
 const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
   const [expanded, setExpanded] = useState(false);
 
-  // Helper function to display student information safely
   const getStudentName = (student: OrderStudent | null) => {
     if (!student) return 'Unknown Student';
     return student.full_name || 'Unknown Student';
   };
 
-  // Helper function to display hostel information safely
   const getStudentLocation = (student: OrderStudent | null) => {
     if (!student) return 'N/A';
     
@@ -46,6 +44,18 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
       : 'Floor N/A';
       
     return `${hostelDisplay}, ${floorDisplay}`;
+  };
+
+  const getFloorDisplay = (order: Order) => {
+    if (order.floor) {
+      return `Floor ${order.floor}`;
+    }
+    
+    if (order.student?.floor && order.student.floor !== 'N/A') {
+      return `Floor ${order.student.floor}`;
+    }
+    
+    return 'Floor not specified';
   };
 
   const formatDate = (dateString: string) => {
@@ -117,6 +127,10 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
                 <p className="text-sm flex items-center text-gray-600">
                   <Building className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
                   {getStudentLocation(order.student)}
+                </p>
+                <p className="text-sm flex items-center text-gray-600">
+                  <Stairs className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                  {getFloorDisplay(order)}
                 </p>
                 <p className="text-sm flex items-center text-gray-600">
                   <CalendarClock className="h-3.5 w-3.5 mr-1.5 text-gray-400" />

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Package, 
   Clock, 
@@ -19,7 +25,8 @@ import {
   Check, 
   ChevronDown, 
   ChevronUp,
-  User
+  User,
+  Building
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -60,6 +67,7 @@ const StudentDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [notes, setNotes] = useState('');
   const [pickupDate, setPickupDate] = useState(format(new Date(), 'yyyy-MM-dd\'T\'HH:mm'));
+  const [selectedFloor, setSelectedFloor] = useState(profile?.floor || '');
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [loading, setLoading] = useState({
@@ -68,7 +76,12 @@ const StudentDashboard = () => {
     placeOrder: false
   });
 
-  // Fetch clothing items based on user's gender
+  useEffect(() => {
+    if (profile?.floor) {
+      setSelectedFloor(profile.floor);
+    }
+  }, [profile]);
+
   useEffect(() => {
     const fetchClothingItems = async () => {
       if (profile?.gender) {
@@ -95,7 +108,6 @@ const StudentDashboard = () => {
     fetchClothingItems();
   }, [profile]);
 
-  // Fetch user's orders
   useEffect(() => {
     if (!user?.id) return;
     
@@ -116,7 +128,6 @@ const StudentDashboard = () => {
         return;
       }
 
-      // Fetch order items for each order
       const ordersWithItems = await Promise.all(
         (data || []).map(async (order) => {
           const { data: items, error: itemsError } = await supabase
@@ -148,7 +159,6 @@ const StudentDashboard = () => {
 
     fetchOrders();
 
-    // Subscribe to real-time updates
     const ordersSubscription = supabase
       .channel('public:orders')
       .on('postgres_changes', 
@@ -159,7 +169,6 @@ const StudentDashboard = () => {
           filter: `student_id=eq.${user.id}` 
         }, 
         () => {
-          // Refresh orders when there's a change
           fetchOrders();
         }
       )
@@ -226,7 +235,15 @@ const StudentDashboard = () => {
       return;
     }
 
-    // Check if the student has washes left
+    if (!selectedFloor) {
+      toast({
+        title: 'Floor selection required',
+        description: 'Please select your floor before placing an order',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (profile?.washes_left <= 0) {
       toast({
         title: 'No washes left',
@@ -239,15 +256,15 @@ const StudentDashboard = () => {
     setLoading(prev => ({ ...prev, placeOrder: true }));
 
     try {
-      // Create the order
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
           student_id: user.id,
           status: 'pending',
-          total_price: calculateTotal(), // Just the count now
+          total_price: calculateTotal(),
           pickup_date: new Date(pickupDate).toISOString(),
           notes: notes.trim() || null,
+          floor: selectedFloor,
         })
         .select()
         .single();
@@ -260,12 +277,11 @@ const StudentDashboard = () => {
         throw new Error('Failed to create order');
       }
 
-      // Create order items
       const orderItems = cart.map(item => ({
         order_id: orderData.id,
         clothing_item_id: item.id,
         quantity: item.quantity || 1,
-        price: 0, // We don't use price anymore
+        price: 0,
       }));
 
       const { error: itemsError } = await supabase
@@ -281,7 +297,6 @@ const StudentDashboard = () => {
         description: `Your order #${orderData.id.slice(0, 8)} has been placed`,
       });
 
-      // Reset form
       setCart([]);
       setNotes('');
       setPickupDate(format(new Date(), 'yyyy-MM-dd\'T\'HH:mm'));
@@ -318,7 +333,7 @@ const StudentDashboard = () => {
         description: 'Your order has been cancelled successfully',
       });
 
-      // Order list will update automatically via the real-time subscription
+      supabase.removeChannel(ordersSubscription);
     } catch (error: any) {
       console.error('Error cancelling order:', error);
       toast({
@@ -461,6 +476,29 @@ const StudentDashboard = () => {
                           onChange={(e) => setPickupDate(e.target.value)}
                           min={format(new Date(), 'yyyy-MM-dd\'T\'HH:mm')}
                         />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="floor-select">Your Floor</Label>
+                        <Select 
+                          value={selectedFloor} 
+                          onValueChange={setSelectedFloor}
+                        >
+                          <SelectTrigger id="floor-select" className="w-full">
+                            <SelectValue placeholder="Select your floor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="G">Ground Floor</SelectItem>
+                            <SelectItem value="1">First Floor</SelectItem>
+                            <SelectItem value="2">Second Floor</SelectItem>
+                            <SelectItem value="3">Third Floor</SelectItem>
+                            <SelectItem value="4">Fourth Floor</SelectItem>
+                            <SelectItem value="5">Fifth Floor</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground">
+                          Floor where your laundry will be picked up from
+                        </p>
                       </div>
                       
                       <div className="space-y-2">
@@ -702,7 +740,6 @@ const StudentDashboard = () => {
         </div>
       </main>
 
-      {/* Profile Dialog */}
       <Dialog open={showProfileDialog} onOpenChange={setShowProfileDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
