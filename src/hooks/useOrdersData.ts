@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -30,15 +29,6 @@ export function useOrdersData() {
 
           if (studentError) {
             console.error('Error fetching student profile:', studentError);
-            // Try a second approach if the first one fails
-            const { data: studentDataRetry, error: studentErrorRetry } = await supabase
-              .rpc('get_profile_by_id', { profile_id: order.student_id });
-              
-            if (studentErrorRetry) {
-              console.error('Also failed with RPC approach:', studentErrorRetry);
-            } else if (studentDataRetry) {
-              console.log('Student data fetched via RPC:', studentDataRetry);
-            }
           }
 
           console.log('Student data fetched:', studentData);

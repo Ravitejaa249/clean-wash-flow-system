@@ -6,6 +6,8 @@ export interface OrderStudent {
   gender: string;
   hostel: string;
   floor: string;
+  washes_left?: number;
+  total_washes?: number;
 }
 
 export type OrderStatus = Database['public']['Enums']['order_status'];
@@ -61,6 +63,8 @@ export function createFallbackStudent(): OrderStudent {
     full_name: 'Unknown Student',
     gender: 'unknown',
     hostel: 'N/A',
-    floor: 'N/A'
+    floor: 'N/A',
+    washes_left: 0,
+    total_washes: 40
   };
 }
