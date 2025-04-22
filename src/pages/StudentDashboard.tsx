@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
 import Logo from '@/components/Logo';
@@ -75,6 +76,9 @@ const StudentDashboard = () => {
     orders: true,
     placeOrder: false
   });
+  
+  // Create a ref to store the subscription channel
+  const ordersSubscriptionRef = useRef<any>(null);
 
   useEffect(() => {
     if (profile?.floor) {
@@ -159,7 +163,8 @@ const StudentDashboard = () => {
 
     fetchOrders();
 
-    const ordersSubscription = supabase
+    // Set up and store the subscription reference
+    const ordersChannel = supabase
       .channel('public:orders')
       .on('postgres_changes', 
         { 
@@ -173,9 +178,15 @@ const StudentDashboard = () => {
         }
       )
       .subscribe();
+    
+    // Store the channel in the ref
+    ordersSubscriptionRef.current = ordersChannel;
 
     return () => {
-      supabase.removeChannel(ordersSubscription);
+      // Use the ref to properly clean up
+      if (ordersSubscriptionRef.current) {
+        supabase.removeChannel(ordersSubscriptionRef.current);
+      }
     };
   }, [user]);
 
@@ -332,8 +343,8 @@ const StudentDashboard = () => {
         title: 'Order cancelled',
         description: 'Your order has been cancelled successfully',
       });
-
-      supabase.removeChannel(ordersSubscription);
+      
+      // Fixed: We're no longer referencing undefined ordersSubscription here
     } catch (error: any) {
       console.error('Error cancelling order:', error);
       toast({
