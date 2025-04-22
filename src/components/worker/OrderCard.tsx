@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   Building,
-  Stairs
+  // Stairs // Removed: "lucide-react" has no "Stairs"
 } from 'lucide-react';
 
 interface OrderCardProps {
@@ -129,7 +130,7 @@ const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
                   {getStudentLocation(order.student)}
                 </p>
                 <p className="text-sm flex items-center text-gray-600">
-                  <Stairs className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                  <span className="h-3.5 w-3.5 mr-1.5 text-gray-400 font-bold text-md">#</span>
                   {getFloorDisplay(order)}
                 </p>
                 <p className="text-sm flex items-center text-gray-600">

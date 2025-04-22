@@ -74,6 +74,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          block: string | null
           created_at: string
           delivery_date: string | null
           floor: string | null
@@ -87,6 +88,7 @@ export type Database = {
           worker_id: string | null
         }
         Insert: {
+          block?: string | null
           created_at?: string
           delivery_date?: string | null
           floor?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           worker_id?: string | null
         }
         Update: {
+          block?: string | null
           created_at?: string
           delivery_date?: string | null
           floor?: string | null

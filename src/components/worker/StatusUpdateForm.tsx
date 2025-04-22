@@ -42,6 +42,43 @@ const StatusUpdateForm: React.FC<StatusUpdateFormProps> = ({
     }
   };
 
+  const sendCompletedOrderEmail = async () => {
+    // If we have student email, send the mail
+    if (order.student && (selectedStatus === "completed")) {
+      try {
+        // Fetch email from student_id (profiles)
+        let studentEmail = "";
+        if (order.student_id) {
+          // Avoid leaking error to students/workers
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("email, full_name")
+            .eq("id", order.student_id)
+            .maybeSingle();
+
+          if (data && data.email) {
+            studentEmail = data.email;
+            await fetch(
+              "https://hxditurdtvmjrgmdqqnp.supabase.co/functions/v1/send-order-completed-email",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  email: studentEmail,
+                  name: data.full_name || "Student",
+                  orderId: order.id,
+                }),
+              }
+            );
+          }
+        }
+      } catch (error) {
+        // Non-blocking, we just log.
+        console.error("Failed to send completed order email:", error);
+      }
+    }
+  };
+
   const updateOrderStatus = async () => {
     if (!selectedStatus) {
       toast({
@@ -90,6 +127,11 @@ const StatusUpdateForm: React.FC<StatusUpdateFormProps> = ({
 
       if (updateError) {
         throw updateError;
+      }
+
+      // If status is completed, trigger email
+      if (selectedStatus === "completed") {
+        await sendCompletedOrderEmail();
       }
 
       toast({
