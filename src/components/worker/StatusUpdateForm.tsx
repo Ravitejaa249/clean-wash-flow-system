@@ -43,39 +43,60 @@ const StatusUpdateForm: React.FC<StatusUpdateFormProps> = ({
   };
 
   const sendCompletedOrderEmail = async () => {
-    // If we have student email, send the mail
-    if (order.student && (selectedStatus === "completed")) {
-      try {
+    try {
+      // If we have student email, send the mail
+      if (order.student_id && selectedStatus === "completed") {
+        console.log("Attempting to send email for completed order:", order.id);
+        
         // Fetch email from student_id (profiles)
-        let studentEmail = "";
-        if (order.student_id) {
-          // Avoid leaking error to students/workers
-          const { data, error } = await supabase
-            .from("profiles")
-            .select("email, full_name")
-            .eq("id", order.student_id)
-            .maybeSingle();
-
-          if (data && data.email) {
-            studentEmail = data.email;
-            await fetch(
-              "https://hxditurdtvmjrgmdqqnp.supabase.co/functions/v1/send-order-completed-email",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  email: studentEmail,
-                  name: data.full_name || "Student",
-                  orderId: order.id,
-                }),
-              }
-            );
-          }
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("email, full_name")
+          .eq("id", order.student_id)
+          .maybeSingle();
+        
+        if (error) {
+          console.error("Error fetching student profile:", error);
+          return;
         }
-      } catch (error) {
-        // Non-blocking, we just log.
-        console.error("Failed to send completed order email:", error);
+
+        if (data && data.email) {
+          console.log("Sending email to:", data.email, "for order:", order.id);
+          
+          const response = await fetch(
+            "https://hxditurdtvmjrgmdqqnp.supabase.co/functions/v1/send-order-completed-email",
+            {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+              },
+              body: JSON.stringify({
+                email: data.email,
+                name: data.full_name || "Student",
+                orderId: order.id,
+              }),
+            }
+          );
+          
+          const result = await response.json();
+          console.log("Email sending result:", result);
+          
+          if (!response.ok) {
+            throw new Error(`Failed to send email: ${result.error || 'Unknown error'}`);
+          }
+          
+          toast({
+            title: 'Email notification sent',
+            description: `Notification email sent to student at ${data.email}`,
+          });
+        } else {
+          console.warn("No email found for student:", order.student_id);
+        }
       }
+    } catch (error) {
+      // Non-blocking, we just log.
+      console.error("Failed to send completed order email:", error);
     }
   };
 

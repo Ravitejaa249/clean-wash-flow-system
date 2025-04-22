@@ -22,7 +22,14 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Received request to send email");
     const { email, name, orderId }: RequestBody = await req.json();
+    
+    console.log("Email details:", { email, name, orderId });
+
+    if (!email) {
+      throw new Error("Email address is required");
+    }
 
     const subject = "Your laundry order has been completed!";
     const html = `
@@ -33,12 +40,15 @@ serve(async (req) => {
     `;
     const fromEmail = "CleanWash <onboarding@resend.dev>";
 
+    console.log("Sending email with resend");
     const response = await resend.emails.send({
       from: fromEmail,
       to: [email],
       subject,
       html,
     });
+
+    console.log("Email sent response:", response);
 
     return new Response(JSON.stringify({ success: true, response }), {
       status: 200,
